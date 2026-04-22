@@ -1,36 +1,494 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Vision9 Solar API — public forms, admin auth, gallery CMS, object uploads.
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: public
+  - name: admin
+  - name: galleries
+  - name: storage
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
           content:
             application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+
+  /contact-submissions:
+    post:
+      operationId: createContactSubmission
+      tags: [public]
+      summary: Submit a contact-us message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContactSubmissionInput" }
+      responses:
+        "201":
+          description: Stored
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SubmissionAck" }
+
+  /estimate-requests:
+    post:
+      operationId: createEstimateRequest
+      tags: [public]
+      summary: Submit an estimate request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EstimateRequestInput" }
+      responses:
+        "201":
+          description: Stored
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SubmissionAck" }
+
+  /public/galleries:
+    get:
+      operationId: listPublicGalleries
+      tags: [public]
+      summary: List published galleries with images
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
               schema:
-                $ref: "#/components/schemas/HealthStatus"
+                type: array
+                items: { $ref: "#/components/schemas/GalleryWithImages" }
+  /public/galleries/{slug}:
+    get:
+      operationId: getPublicGallery
+      tags: [public]
+      summary: Get a single published gallery by slug
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GalleryWithImages" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Sign in to the admin area
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginInput" }
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminUser" }
+        "401":
+          description: Invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+  /admin/logout:
+    post:
+      operationId: adminLogout
+      tags: [admin]
+      summary: Sign out
+      responses:
+        "204": { description: Signed out }
+  /admin/me:
+    get:
+      operationId: adminMe
+      tags: [admin]
+      summary: Current signed-in admin
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminUser" }
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+  /admin/password:
+    post:
+      operationId: adminChangePassword
+      tags: [admin]
+      summary: Change current admin password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangePasswordInput" }
+      responses:
+        "204": { description: Updated }
+        "400":
+          description: Invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+
+  /admin/contact-submissions:
+    get:
+      operationId: listContactSubmissions
+      tags: [admin]
+      summary: List contact submissions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ContactSubmission" }
+  /admin/contact-submissions/{id}:
+    delete:
+      operationId: deleteContactSubmission
+      tags: [admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Deleted }
+
+  /admin/estimate-requests:
+    get:
+      operationId: listEstimateRequests
+      tags: [admin]
+      summary: List estimate requests
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/EstimateRequest" }
+  /admin/estimate-requests/{id}:
+    delete:
+      operationId: deleteEstimateRequest
+      tags: [admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Deleted }
+
+  /admin/galleries:
+    get:
+      operationId: listGalleries
+      tags: [galleries]
+      summary: List galleries (admin)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GalleryWithImages" }
+    post:
+      operationId: createGallery
+      tags: [galleries]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GalleryInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Gallery" }
+  /admin/galleries/{id}:
+    patch:
+      operationId: updateGallery
+      tags: [galleries]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GalleryInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Gallery" }
+    delete:
+      operationId: deleteGallery
+      tags: [galleries]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Deleted }
+
+  /admin/galleries/{id}/images:
+    post:
+      operationId: addGalleryImage
+      tags: [galleries]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GalleryImageInput" }
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GalleryImage" }
+  /admin/gallery-images/{id}:
+    patch:
+      operationId: updateGalleryImage
+      tags: [galleries]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GalleryImageUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GalleryImage" }
+    delete:
+      operationId: deleteGalleryImage
+      tags: [galleries]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Deleted }
+
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Get a presigned upload URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RequestUploadUrlBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RequestUploadUrlResponse" }
+
 components:
   schemas:
     HealthStatus:
       type: object
+      properties: { status: { type: string } }
+      required: [status]
+    ApiError:
+      type: object
+      properties: { error: { type: string } }
+      required: [error]
+    SubmissionAck:
+      type: object
       properties:
-        status:
-          type: string
-      required:
-        - status
+        id: { type: integer }
+        ok: { type: boolean }
+      required: [id, ok]
 
+    ContactSubmissionInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        email: { type: string, format: email, maxLength: 320 }
+        phone: { type: ["string", "null"], maxLength: 50 }
+        subject: { type: ["string", "null"], maxLength: 300 }
+        message: { type: string, minLength: 1, maxLength: 5000 }
+      required: [name, email, message]
+    ContactSubmission:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: ["string", "null"] }
+        subject: { type: ["string", "null"] }
+        message: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, name, email, message, createdAt]
+
+    EstimateRequestInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        email: { type: string, format: email, maxLength: 320 }
+        phone: { type: ["string", "null"], maxLength: 50 }
+        address: { type: ["string", "null"], maxLength: 500 }
+        propertyType: { type: ["string", "null"], maxLength: 100 }
+        projectType: { type: ["string", "null"], maxLength: 200 }
+        monthlyBill: { type: ["string", "null"], maxLength: 100 }
+        timeline: { type: ["string", "null"], maxLength: 100 }
+        notes: { type: ["string", "null"], maxLength: 5000 }
+      required: [name, email]
+    EstimateRequest:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: ["string", "null"] }
+        address: { type: ["string", "null"] }
+        propertyType: { type: ["string", "null"] }
+        projectType: { type: ["string", "null"] }
+        monthlyBill: { type: ["string", "null"] }
+        timeline: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+      required: [id, name, email, createdAt]
+
+    LoginInput:
+      type: object
+      properties:
+        username: { type: string, minLength: 1, maxLength: 100 }
+        password: { type: string, minLength: 1, maxLength: 200 }
+      required: [username, password]
+    ChangePasswordInput:
+      type: object
+      properties:
+        currentPassword: { type: string, minLength: 1, maxLength: 200 }
+        newPassword: { type: string, minLength: 12, maxLength: 200 }
+      required: [currentPassword, newPassword]
+    AdminUser:
+      type: object
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        mustChangePassword: { type: boolean }
+        createdAt: { type: string, format: date-time }
+      required: [id, username, mustChangePassword, createdAt]
+
+    GalleryInput:
+      type: object
+      properties:
+        slug: { type: string, minLength: 1, maxLength: 200 }
+        title: { type: string, minLength: 1, maxLength: 300 }
+        description: { type: ["string", "null"], maxLength: 2000 }
+        location: { type: ["string", "null"], maxLength: 200 }
+        published: { type: boolean }
+      required: [slug, title, published]
+    Gallery:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        location: { type: ["string", "null"] }
+        published: { type: boolean }
+        createdAt: { type: string, format: date-time }
+      required: [id, slug, title, published, createdAt]
+    GalleryImage:
+      type: object
+      properties:
+        id: { type: integer }
+        galleryId: { type: integer }
+        objectPath: { type: string }
+        caption: { type: ["string", "null"] }
+        altText: { type: ["string", "null"] }
+        sortOrder: { type: integer }
+      required: [id, galleryId, objectPath, sortOrder]
+    GalleryImageInput:
+      type: object
+      properties:
+        objectPath: { type: string, minLength: 1, maxLength: 500 }
+        caption: { type: ["string", "null"], maxLength: 500 }
+        altText: { type: ["string", "null"], maxLength: 300 }
+        sortOrder: { type: ["integer", "null"] }
+      required: [objectPath]
+    GalleryImageUpdate:
+      type: object
+      properties:
+        caption: { type: ["string", "null"], maxLength: 500 }
+        altText: { type: ["string", "null"], maxLength: 300 }
+        sortOrder: { type: ["integer", "null"] }
+    GalleryWithImages:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        location: { type: ["string", "null"] }
+        published: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        images:
+          type: array
+          items: { $ref: "#/components/schemas/GalleryImage" }
+      required: [id, slug, title, published, createdAt, images]
+
+    RequestUploadUrlBody:
+      type: object
+      properties:
+        name: { type: string }
+        size: { type: integer }
+        contentType: { type: string }
+      required: [name, size, contentType]
+    RequestUploadUrlResponse:
+      type: object
+      properties:
+        uploadURL: { type: string }
+        objectPath: { type: string }
+      required: [uploadURL, objectPath]

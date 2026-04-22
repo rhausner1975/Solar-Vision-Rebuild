@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Vision9 Solar"
+version = "1.0.0"
+id = "artifacts/vision9-solar"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25036
+
+[services.development]
+run = "pnpm --filter @workspace/vision9-solar run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/vision9-solar", "run", "build" ]
+publicDir = "artifacts/vision9-solar/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25036"
+BASE_PATH = "/"
