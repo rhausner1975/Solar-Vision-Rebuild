@@ -65,7 +65,36 @@ export async function getCurrentAdmin(req: Request): Promise<AdminUser | null> {
   return row.admin_users;
 }
 
+// CSRF defence for cookie-authenticated mutating requests:
+// SameSite=Strict on the session cookie blocks cross-site requests from
+// attaching the cookie. We additionally verify that the Origin (or Referer
+// when Origin is absent) of any unsafe-method request matches the request's
+// own Host header. Any mismatch (cross-site forgery attempt) is rejected.
+function isSameOrigin(req: Request): boolean {
+  const method = (req.method || "").toUpperCase();
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") return true;
+  const host = req.get("host");
+  if (!host) return false;
+  const origin = req.get("origin");
+  const referer = req.get("referer");
+  const candidate = origin || referer;
+  if (!candidate) {
+    // Hard-require an Origin/Referer on cookie-auth mutating requests.
+    return false;
+  }
+  try {
+    const url = new URL(candidate);
+    return url.host === host;
+  } catch {
+    return false;
+  }
+}
+
 export async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  if (!isSameOrigin(req)) {
+    res.status(403).json({ error: "Cross-site request blocked" });
+    return;
+  }
   const admin = await getCurrentAdmin(req);
   if (!admin) {
     res.status(401).json({ error: "Authentication required" });

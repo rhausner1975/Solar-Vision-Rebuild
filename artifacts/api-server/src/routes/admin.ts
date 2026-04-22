@@ -46,7 +46,28 @@ function publicAdmin(user: { id: number; username: string; mustChangePassword: b
   };
 }
 
-router.post("/admin/login", loginLimiter, async (req, res): Promise<void> => {
+function sameOriginGuard(req: import("express").Request, res: import("express").Response, next: import("express").NextFunction): void {
+  const method = (req.method || "").toUpperCase();
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") return next();
+  const host = req.get("host");
+  const candidate = req.get("origin") || req.get("referer");
+  if (!host || !candidate) {
+    res.status(403).json({ error: "Cross-site request blocked" });
+    return;
+  }
+  try {
+    if (new URL(candidate).host !== host) {
+      res.status(403).json({ error: "Cross-site request blocked" });
+      return;
+    }
+  } catch {
+    res.status(403).json({ error: "Cross-site request blocked" });
+    return;
+  }
+  next();
+}
+
+router.post("/admin/login", sameOriginGuard, loginLimiter, async (req, res): Promise<void> => {
   const parsed = AdminLoginBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -66,7 +87,7 @@ router.post("/admin/login", loginLimiter, async (req, res): Promise<void> => {
   res.json(publicAdmin(user));
 });
 
-router.post("/admin/logout", async (req, res): Promise<void> => {
+router.post("/admin/logout", sameOriginGuard, async (req, res): Promise<void> => {
   await destroySession(req, res);
   res.status(204).end();
 });
