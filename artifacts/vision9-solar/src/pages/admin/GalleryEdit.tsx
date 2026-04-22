@@ -9,9 +9,11 @@ import {
   useListGalleries, 
   useUpdateGallery,
   useAddGalleryImage,
+  useUpdateGalleryImage,
   useDeleteGalleryImage,
   useRequestUploadUrl,
-  getListGalleriesQueryKey
+  getListGalleriesQueryKey,
+  type GalleryImage,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -46,6 +48,53 @@ const gallerySchema = z.object({
   description: z.string().optional(),
   published: z.boolean().default(false),
 });
+
+function ImageMetaEditor({ image }: { image: GalleryImage }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [altText, setAltText] = useState(image.altText ?? "");
+  const [caption, setCaption] = useState(image.caption ?? "");
+  const update = useUpdateGalleryImage();
+
+  const dirty = altText !== (image.altText ?? "") || caption !== (image.caption ?? "");
+
+  const save = () => {
+    update.mutate(
+      { id: image.id, data: { altText: altText || null, caption: caption || null } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListGalleriesQueryKey() });
+          toast({ title: "Image details saved" });
+        },
+        onError: () => toast({ title: "Failed to save", variant: "destructive" }),
+      },
+    );
+  };
+
+  return (
+    <div className="absolute inset-x-0 bottom-0 bg-black/70 text-white text-xs p-2 space-y-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <Input
+        aria-label="Alt text"
+        placeholder="Alt text (for screen readers + SEO)"
+        value={altText}
+        onChange={(e) => setAltText(e.target.value)}
+        className="h-7 text-xs bg-white/10 border-white/20 text-white placeholder:text-white/60"
+      />
+      <Input
+        aria-label="Caption"
+        placeholder="Caption (optional)"
+        value={caption}
+        onChange={(e) => setCaption(e.target.value)}
+        className="h-7 text-xs bg-white/10 border-white/20 text-white placeholder:text-white/60"
+      />
+      {dirty && (
+        <Button size="sm" className="w-full h-7 text-xs" onClick={save} disabled={update.isPending}>
+          {update.isPending ? "Saving..." : "Save"}
+        </Button>
+      )}
+    </div>
+  );
+}
 
 export default function GalleryEdit() {
   const [, params] = useRoute("/admin/galleries/:id");
@@ -271,6 +320,7 @@ export default function GalleryEdit() {
                         alt={img.altText || ""} 
                         className="w-full h-full object-cover"
                       />
+                      <ImageMetaEditor image={img} />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>

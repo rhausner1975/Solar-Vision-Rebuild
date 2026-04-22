@@ -12,10 +12,11 @@ import {
   CreateEstimateRequestBody,
   GetPublicGalleryParams,
 } from "@workspace/api-zod";
+import { publicFormLimiter } from "../lib/rateLimit";
 
 const router: IRouter = Router();
 
-router.post("/contact-submissions", async (req, res): Promise<void> => {
+router.post("/contact-submissions", publicFormLimiter, async (req, res): Promise<void> => {
   const parsed = CreateContactSubmissionBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -28,7 +29,7 @@ router.post("/contact-submissions", async (req, res): Promise<void> => {
   res.status(201).json({ id: row.id, ok: true });
 });
 
-router.post("/estimate-requests", async (req, res): Promise<void> => {
+router.post("/estimate-requests", publicFormLimiter, async (req, res): Promise<void> => {
   const parsed = CreateEstimateRequestBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });

@@ -33,7 +33,7 @@ export async function createSession(userId: number, res: Response): Promise<stri
   await db.insert(adminSessionsTable).values({ id, userId, expiresAt });
   res.cookie(SESSION_COOKIE, id, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "strict",
     secure: process.env.NODE_ENV === "production",
     expires: expiresAt,
     path: "/",

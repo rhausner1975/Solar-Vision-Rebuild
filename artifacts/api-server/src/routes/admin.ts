@@ -33,6 +33,7 @@ import {
   revokeOtherSessions,
   getCurrentSessionId,
 } from "../lib/auth";
+import { loginLimiter } from "../lib/rateLimit";
 
 const router: IRouter = Router();
 
@@ -45,7 +46,7 @@ function publicAdmin(user: { id: number; username: string; mustChangePassword: b
   };
 }
 
-router.post("/admin/login", async (req, res): Promise<void> => {
+router.post("/admin/login", loginLimiter, async (req, res): Promise<void> => {
   const parsed = AdminLoginBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
