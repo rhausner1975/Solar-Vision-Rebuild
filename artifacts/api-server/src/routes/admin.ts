@@ -30,6 +30,8 @@ import {
   destroySession,
   getCurrentAdmin,
   requireAdmin,
+  revokeOtherSessions,
+  getCurrentSessionId,
 } from "../lib/auth";
 
 const router: IRouter = Router();
@@ -94,6 +96,10 @@ router.post("/admin/password", requireAdmin, async (req, res): Promise<void> => 
     .update(adminUsersTable)
     .set({ passwordHash: newHash, mustChangePassword: false })
     .where(eq(adminUsersTable.id, user.id));
+  const currentSessionId = getCurrentSessionId(req);
+  if (currentSessionId) {
+    await revokeOtherSessions(user.id, currentSessionId);
+  }
   res.status(204).end();
 });
 

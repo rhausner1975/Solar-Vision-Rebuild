@@ -1,6 +1,6 @@
 import argon2 from "argon2";
 import crypto from "node:crypto";
-import { eq, lt } from "drizzle-orm";
+import { and, eq, lt, ne } from "drizzle-orm";
 import type { Request, Response, NextFunction } from "express";
 import { db, adminUsersTable, adminSessionsTable, type AdminUser } from "@workspace/db";
 import { logger } from "./logger";
@@ -71,8 +71,30 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     res.status(401).json({ error: "Authentication required" });
     return;
   }
+  // Force password change before any other privileged action.
+  // The only routes allowed while mustChangePassword=true are /admin/me,
+  // /admin/logout, and /admin/password (handled by their own checks).
+  const path = req.path || req.url || "";
+  const isPasswordChangeRoute = path.endsWith("/password");
+  if (admin.mustChangePassword && !isPasswordChangeRoute) {
+    res.status(403).json({ error: "Password change required", mustChangePassword: true });
+    return;
+  }
   (req as Request & { admin: AdminUser }).admin = admin;
   next();
+}
+
+export async function revokeOtherSessions(userId: number, currentSessionId: string): Promise<void> {
+  await db
+    .delete(adminSessionsTable)
+    .where(
+      and(eq(adminSessionsTable.userId, userId), ne(adminSessionsTable.id, currentSessionId)),
+    );
+}
+
+export function getCurrentSessionId(req: Request): string | undefined {
+  const id = req.cookies?.[SESSION_COOKIE];
+  return typeof id === "string" ? id : undefined;
 }
 
 export async function purgeExpiredSessions(): Promise<void> {
