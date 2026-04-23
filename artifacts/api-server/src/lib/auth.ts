@@ -1,9 +1,17 @@
 import argon2 from "argon2";
 import crypto from "node:crypto";
-import { and, eq, lt, ne } from "drizzle-orm";
+import { and, eq, isNull, lt, ne } from "drizzle-orm";
 import type { Request, Response, NextFunction } from "express";
-import { db, adminUsersTable, adminSessionsTable, type AdminUser } from "@workspace/db";
+import {
+  db,
+  adminUsersTable,
+  adminSessionsTable,
+  passwordResetTokensTable,
+  type AdminUser,
+} from "@workspace/db";
 import { logger } from "./logger";
+
+const RESET_TOKEN_TTL_MS = 1000 * 60 * 15;
 
 const SESSION_COOKIE = "v9_admin_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
@@ -128,6 +136,71 @@ export function getCurrentSessionId(req: Request): string | undefined {
 
 export async function purgeExpiredSessions(): Promise<void> {
   await db.delete(adminSessionsTable).where(lt(adminSessionsTable.expiresAt, new Date()));
+  await db
+    .delete(passwordResetTokensTable)
+    .where(lt(passwordResetTokensTable.expiresAt, new Date()));
+}
+
+export async function revokeAllSessions(userId: number): Promise<void> {
+  await db.delete(adminSessionsTable).where(eq(adminSessionsTable.userId, userId));
+}
+
+function hashResetToken(rawToken: string): string {
+  return crypto.createHash("sha256").update(rawToken).digest("hex");
+}
+
+export async function createPasswordResetToken(userId: number): Promise<{
+  rawToken: string;
+  expiresAt: Date;
+}> {
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = hashResetToken(rawToken);
+  const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+  await db.insert(passwordResetTokensTable).values({ userId, tokenHash, expiresAt });
+  return { rawToken, expiresAt };
+}
+
+export async function consumePasswordResetToken(
+  rawToken: string,
+): Promise<{ userId: number } | null> {
+  if (typeof rawToken !== "string" || rawToken.length < 32) return null;
+  const tokenHash = hashResetToken(rawToken);
+  const [row] = await db
+    .select()
+    .from(passwordResetTokensTable)
+    .where(
+      and(
+        eq(passwordResetTokensTable.tokenHash, tokenHash),
+        isNull(passwordResetTokensTable.usedAt),
+      ),
+    );
+  if (!row) return null;
+  if (row.expiresAt.getTime() < Date.now()) return null;
+  const now = new Date();
+  const updated = await db
+    .update(passwordResetTokensTable)
+    .set({ usedAt: now })
+    .where(
+      and(
+        eq(passwordResetTokensTable.id, row.id),
+        isNull(passwordResetTokensTable.usedAt),
+      ),
+    )
+    .returning({ id: passwordResetTokensTable.id });
+  if (updated.length === 0) return null;
+  return { userId: row.userId };
+}
+
+export async function invalidateActiveResetTokens(userId: number): Promise<void> {
+  await db
+    .update(passwordResetTokensTable)
+    .set({ usedAt: new Date() })
+    .where(
+      and(
+        eq(passwordResetTokensTable.userId, userId),
+        isNull(passwordResetTokensTable.usedAt),
+      ),
+    );
 }
 
 export async function seedDefaultAdmin(): Promise<void> {

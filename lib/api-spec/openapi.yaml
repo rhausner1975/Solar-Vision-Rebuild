@@ -156,6 +156,41 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ApiError" }
 
+  /admin/password-reset/request:
+    post:
+      operationId: requestAdminPasswordReset
+      tags: [admin]
+      summary: Request a one-time password reset link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RequestPasswordResetInput" }
+      responses:
+        "204": { description: Accepted }
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+  /admin/password-reset/confirm:
+    post:
+      operationId: confirmAdminPasswordReset
+      tags: [admin]
+      summary: Set a new password using a reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConfirmPasswordResetInput" }
+      responses:
+        "204": { description: Password updated }
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+
   /admin/contact-submissions:
     get:
       operationId: listContactSubmissions
@@ -405,6 +440,17 @@ components:
         username: { type: string, minLength: 1, maxLength: 100 }
         password: { type: string, minLength: 1, maxLength: 200 }
       required: [username, password]
+    RequestPasswordResetInput:
+      type: object
+      properties:
+        username: { type: string, minLength: 1, maxLength: 100 }
+      required: [username]
+    ConfirmPasswordResetInput:
+      type: object
+      properties:
+        token: { type: string, minLength: 32, maxLength: 200 }
+        newPassword: { type: string, minLength: 12, maxLength: 200 }
+      required: [token, newPassword]
     ChangePasswordInput:
       type: object
       properties:

@@ -21,6 +21,8 @@ import GalleryView from "@/pages/GalleryView";
 
 // Admin Pages
 import AdminLogin from "@/pages/admin/Login";
+import AdminPasswordResetRequest from "@/pages/admin/PasswordResetRequest";
+import AdminPasswordResetConfirm from "@/pages/admin/PasswordResetConfirm";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminContact from "@/pages/admin/ContactSubmissions";
 import AdminEstimates from "@/pages/admin/EstimateRequests";
@@ -40,13 +42,24 @@ const queryClient = new QueryClient({
 function Router() {
   const [location] = useLocation();
   const isAdmin = location.startsWith("/admin");
-  const isLogin = location === "/admin/login";
+  const isUnauthenticatedAdmin =
+    location === "/admin/login" ||
+    location === "/admin/password-reset" ||
+    location.startsWith("/admin/password-reset/");
 
   if (isAdmin) {
-    if (isLogin) {
+    if (isUnauthenticatedAdmin) {
       return (
         <Switch>
           <Route path="/admin/login" component={AdminLogin} />
+          <Route
+            path="/admin/password-reset"
+            component={AdminPasswordResetRequest}
+          />
+          <Route
+            path="/admin/password-reset/:token"
+            component={AdminPasswordResetConfirm}
+          />
         </Switch>
       );
     }

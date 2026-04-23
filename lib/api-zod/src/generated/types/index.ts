@@ -9,6 +9,7 @@
 export * from "./adminUser";
 export * from "./apiError";
 export * from "./changePasswordInput";
+export * from "./confirmPasswordResetInput";
 export * from "./contactSubmission";
 export * from "./contactSubmissionInput";
 export * from "./estimateRequest";
@@ -21,6 +22,7 @@ export * from "./galleryInput";
 export * from "./galleryWithImages";
 export * from "./healthStatus";
 export * from "./loginInput";
+export * from "./requestPasswordResetInput";
 export * from "./requestUploadUrlBody";
 export * from "./requestUploadUrlResponse";
 export * from "./submissionAck";

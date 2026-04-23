@@ -134,6 +134,27 @@ export interface LoginInput {
   password: string;
 }
 
+export interface RequestPasswordResetInput {
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  username: string;
+}
+
+export interface ConfirmPasswordResetInput {
+  /**
+   * @minLength 32
+   * @maxLength 200
+   */
+  token: string;
+  /**
+   * @minLength 12
+   * @maxLength 200
+   */
+  newPassword: string;
+}
+
 export interface ChangePasswordInput {
   /**
    * @minLength 1

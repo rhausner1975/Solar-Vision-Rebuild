@@ -179,6 +179,35 @@ export const AdminChangePasswordBody = zod.object({
 });
 
 /**
+ * @summary Request a one-time password reset link
+ */
+export const requestAdminPasswordResetBodyUsernameMax = 100;
+
+export const RequestAdminPasswordResetBody = zod.object({
+  username: zod.string().min(1).max(requestAdminPasswordResetBodyUsernameMax),
+});
+
+/**
+ * @summary Set a new password using a reset token
+ */
+export const confirmAdminPasswordResetBodyTokenMin = 32;
+export const confirmAdminPasswordResetBodyTokenMax = 200;
+
+export const confirmAdminPasswordResetBodyNewPasswordMin = 12;
+export const confirmAdminPasswordResetBodyNewPasswordMax = 200;
+
+export const ConfirmAdminPasswordResetBody = zod.object({
+  token: zod
+    .string()
+    .min(confirmAdminPasswordResetBodyTokenMin)
+    .max(confirmAdminPasswordResetBodyTokenMax),
+  newPassword: zod
+    .string()
+    .min(confirmAdminPasswordResetBodyNewPasswordMin)
+    .max(confirmAdminPasswordResetBodyNewPasswordMax),
+});
+
+/**
  * @summary List contact submissions
  */
 export const ListContactSubmissionsResponseItem = zod.object({

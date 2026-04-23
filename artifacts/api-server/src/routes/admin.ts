@@ -11,6 +11,8 @@ import {
 import {
   AdminLoginBody,
   AdminChangePasswordBody,
+  RequestAdminPasswordResetBody,
+  ConfirmAdminPasswordResetBody,
   CreateGalleryBody,
   UpdateGalleryBody,
   UpdateGalleryParams,
@@ -31,9 +33,18 @@ import {
   getCurrentAdmin,
   requireAdmin,
   revokeOtherSessions,
+  revokeAllSessions,
   getCurrentSessionId,
+  createPasswordResetToken,
+  consumePasswordResetToken,
+  invalidateActiveResetTokens,
 } from "../lib/auth";
-import { loginLimiter } from "../lib/rateLimit";
+import {
+  loginLimiter,
+  passwordResetRequestLimiter,
+  passwordResetConfirmLimiter,
+} from "../lib/rateLimit";
+import { sendMail, getAdminNotificationEmail } from "../lib/mailer";
 
 const router: IRouter = Router();
 
@@ -86,6 +97,122 @@ router.post("/admin/login", sameOriginGuard, loginLimiter, async (req, res): Pro
   await createSession(user.id, res);
   res.json(publicAdmin(user));
 });
+
+// Build the password-reset URL from a *trusted* server-side configuration only.
+// We must never use the request's Host / X-Forwarded-Host headers here: those
+// can be spoofed by an attacker triggering an unauthenticated reset request,
+// which would cause the email to contain an attacker-controlled domain with a
+// valid one-time token in the path (account takeover).
+//
+// Resolution order:
+//  1. APP_BASE_URL (operator-configured canonical origin, e.g. https://vision9solar.com)
+//  2. REPLIT_DOMAINS (Replit-injected; first entry, https) — safe in dev/preview
+// If neither is set, we refuse to issue the link.
+function getCanonicalBaseUrl(): string | null {
+  const explicit = process.env.APP_BASE_URL;
+  if (explicit) {
+    return explicit.replace(/\/+$/, "");
+  }
+  const replitDomains = process.env.REPLIT_DOMAINS;
+  if (replitDomains) {
+    const first = replitDomains.split(",")[0].trim();
+    if (first) return `https://${first}`;
+  }
+  return null;
+}
+
+router.post(
+  "/admin/password-reset/request",
+  sameOriginGuard,
+  passwordResetRequestLimiter,
+  async (req, res): Promise<void> => {
+    const parsed = RequestAdminPasswordResetBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    // Verify reset is configured *before* doing the user lookup. Otherwise
+    // unknown usernames would still get 204 while known usernames hit a 500,
+    // which would leak username validity in the misconfigured-server case.
+    const baseUrl = getCanonicalBaseUrl();
+    if (!baseUrl) {
+      req.log.error(
+        "Cannot issue password reset: APP_BASE_URL is not configured and no safe fallback is available.",
+      );
+      res.status(500).json({
+        error:
+          "Password reset is not configured. Set APP_BASE_URL on the server and retry.",
+      });
+      return;
+    }
+    const username = parsed.data.username.trim();
+    const [user] = await db
+      .select()
+      .from(adminUsersTable)
+      .where(eq(adminUsersTable.username, username));
+    if (!user) {
+      // Do not reveal whether the username exists.
+      req.log.info({ username }, "Password reset requested for unknown admin username");
+      res.status(204).end();
+      return;
+    }
+    // Invalidate any prior outstanding tokens before issuing a new one so
+    // only one reset link is ever live for an account at a time.
+    await invalidateActiveResetTokens(user.id);
+    const { rawToken, expiresAt } = await createPasswordResetToken(user.id);
+    const resetUrl = `${baseUrl}/admin/password-reset/${rawToken}`;
+    const adminEmail = getAdminNotificationEmail();
+    const text = [
+      "A password reset was requested for your Vision9 Solar admin account.",
+      "",
+      `Reset link (valid for 15 minutes, until ${expiresAt.toUTCString()}):`,
+      resetUrl,
+      "",
+      "If you did not request this, you can ignore this email — your password will not change.",
+    ].join("\n");
+    const html = `
+      <p>A password reset was requested for your Vision9 Solar admin account.</p>
+      <p><strong>This link is valid for 15 minutes</strong> (until ${expiresAt.toUTCString()}):</p>
+      <p><a href="${resetUrl}">${resetUrl}</a></p>
+      <p>If you did not request this, you can ignore this email — your password will not change.</p>
+    `;
+    await sendMail({
+      to: adminEmail,
+      subject: "Vision9 Solar admin password reset",
+      text,
+      html,
+    });
+    req.log.info({ adminUserId: user.id }, "Issued admin password reset token");
+    res.status(204).end();
+  },
+);
+
+router.post(
+  "/admin/password-reset/confirm",
+  sameOriginGuard,
+  passwordResetConfirmLimiter,
+  async (req, res): Promise<void> => {
+    const parsed = ConfirmAdminPasswordResetBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const consumed = await consumePasswordResetToken(parsed.data.token);
+    if (!consumed) {
+      res.status(400).json({ error: "Invalid or expired reset link" });
+      return;
+    }
+    const newHash = await hashPassword(parsed.data.newPassword);
+    await db
+      .update(adminUsersTable)
+      .set({ passwordHash: newHash, mustChangePassword: false })
+      .where(eq(adminUsersTable.id, consumed.userId));
+    await invalidateActiveResetTokens(consumed.userId);
+    await revokeAllSessions(consumed.userId);
+    req.log.info({ adminUserId: consumed.userId }, "Admin password reset via token");
+    res.status(204).end();
+  },
+);
 
 router.post("/admin/logout", sameOriginGuard, async (req, res): Promise<void> => {
   await destroySession(req, res);

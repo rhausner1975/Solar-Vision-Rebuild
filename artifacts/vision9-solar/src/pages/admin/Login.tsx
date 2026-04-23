@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAdminLogin, getAdminMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -103,6 +103,16 @@ export default function AdminLogin() {
               <Button type="submit" className="w-full font-bold" disabled={login.isPending}>
                 {login.isPending ? "Logging in..." : "Login"}
               </Button>
+
+              <div className="text-center text-sm">
+                <Link
+                  to="/admin/password-reset"
+                  className="text-primary underline hover:no-underline"
+                  data-testid="link-forgot-password"
+                >
+                  Forgot password?
+                </Link>
+              </div>
             </form>
           </Form>
         </div>

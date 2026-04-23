@@ -20,6 +20,7 @@ import type {
   AdminUser,
   ApiError,
   ChangePasswordInput,
+  ConfirmPasswordResetInput,
   ContactSubmission,
   ContactSubmissionInput,
   EstimateRequest,
@@ -32,6 +33,7 @@ import type {
   GalleryWithImages,
   HealthStatus,
   LoginInput,
+  RequestPasswordResetInput,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
   SubmissionAck,
@@ -770,6 +772,180 @@ export const useAdminChangePassword = <
   TContext
 > => {
   return useMutation(getAdminChangePasswordMutationOptions(options));
+};
+
+/**
+ * @summary Request a one-time password reset link
+ */
+export const getRequestAdminPasswordResetUrl = () => {
+  return `/api/admin/password-reset/request`;
+};
+
+export const requestAdminPasswordReset = async (
+  requestPasswordResetInput: RequestPasswordResetInput,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getRequestAdminPasswordResetUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(requestPasswordResetInput),
+  });
+};
+
+export const getRequestAdminPasswordResetMutationOptions = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestAdminPasswordReset>>,
+    TError,
+    { data: BodyType<RequestPasswordResetInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestAdminPasswordReset>>,
+  TError,
+  { data: BodyType<RequestPasswordResetInput> },
+  TContext
+> => {
+  const mutationKey = ["requestAdminPasswordReset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestAdminPasswordReset>>,
+    { data: BodyType<RequestPasswordResetInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestAdminPasswordReset(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestAdminPasswordResetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestAdminPasswordReset>>
+>;
+export type RequestAdminPasswordResetMutationBody =
+  BodyType<RequestPasswordResetInput>;
+export type RequestAdminPasswordResetMutationError = ErrorType<ApiError>;
+
+/**
+ * @summary Request a one-time password reset link
+ */
+export const useRequestAdminPasswordReset = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestAdminPasswordReset>>,
+    TError,
+    { data: BodyType<RequestPasswordResetInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestAdminPasswordReset>>,
+  TError,
+  { data: BodyType<RequestPasswordResetInput> },
+  TContext
+> => {
+  return useMutation(getRequestAdminPasswordResetMutationOptions(options));
+};
+
+/**
+ * @summary Set a new password using a reset token
+ */
+export const getConfirmAdminPasswordResetUrl = () => {
+  return `/api/admin/password-reset/confirm`;
+};
+
+export const confirmAdminPasswordReset = async (
+  confirmPasswordResetInput: ConfirmPasswordResetInput,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getConfirmAdminPasswordResetUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(confirmPasswordResetInput),
+  });
+};
+
+export const getConfirmAdminPasswordResetMutationOptions = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmAdminPasswordReset>>,
+    TError,
+    { data: BodyType<ConfirmPasswordResetInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof confirmAdminPasswordReset>>,
+  TError,
+  { data: BodyType<ConfirmPasswordResetInput> },
+  TContext
+> => {
+  const mutationKey = ["confirmAdminPasswordReset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof confirmAdminPasswordReset>>,
+    { data: BodyType<ConfirmPasswordResetInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return confirmAdminPasswordReset(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConfirmAdminPasswordResetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof confirmAdminPasswordReset>>
+>;
+export type ConfirmAdminPasswordResetMutationBody =
+  BodyType<ConfirmPasswordResetInput>;
+export type ConfirmAdminPasswordResetMutationError = ErrorType<ApiError>;
+
+/**
+ * @summary Set a new password using a reset token
+ */
+export const useConfirmAdminPasswordReset = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmAdminPasswordReset>>,
+    TError,
+    { data: BodyType<ConfirmPasswordResetInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof confirmAdminPasswordReset>>,
+  TError,
+  { data: BodyType<ConfirmPasswordResetInput> },
+  TContext
+> => {
+  return useMutation(getConfirmAdminPasswordResetMutationOptions(options));
 };
 
 /**
