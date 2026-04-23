@@ -81,10 +81,12 @@ export default function Contact() {
           });
           form.reset();
         },
-        onError: () => {
+        onError: (error: Error) => {
           toast({
             title: "Error",
-            description: "There was a problem sending your message. Please try again.",
+            description:
+              error?.message ||
+              "There was a problem sending your message. Please try again.",
             variant: "destructive",
           });
         },

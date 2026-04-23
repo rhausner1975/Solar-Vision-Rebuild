@@ -51,15 +51,24 @@ function checkHoneypotAndTiming(req: Request, formName: string): AntiSpamResult 
   }
 
   // Minimum fill time: humans cannot complete the form faster than this.
-  if (typeof body.formMountedAt === "number" && Number.isFinite(body.formMountedAt)) {
-    const elapsed = Date.now() - body.formMountedAt;
-    if (elapsed >= 0 && elapsed < MIN_FILL_TIME_MS) {
-      logger.info(
-        { form: formName, ip: req.ip, elapsedMs: elapsed },
-        "Spam blocked: form submitted too quickly",
-      );
-      return { silentDrop: true, rejectReason: "too-fast" };
-    }
+  // The legitimate frontend always sends a finite numeric formMountedAt; if the
+  // field is missing, non-numeric, or in the future, treat it as bot behavior
+  // and silently drop so the timing layer cannot be bypassed by simply omitting
+  // the field.
+  if (typeof body.formMountedAt !== "number" || !Number.isFinite(body.formMountedAt)) {
+    logger.info(
+      { form: formName, ip: req.ip, formMountedAt: body.formMountedAt },
+      "Spam blocked: missing or invalid formMountedAt",
+    );
+    return { silentDrop: true, rejectReason: "missing-timestamp" };
+  }
+  const elapsed = Date.now() - body.formMountedAt;
+  if (elapsed < MIN_FILL_TIME_MS) {
+    logger.info(
+      { form: formName, ip: req.ip, elapsedMs: elapsed },
+      "Spam blocked: form submitted too quickly",
+    );
+    return { silentDrop: true, rejectReason: "too-fast" };
   }
 
   return { silentDrop: false };

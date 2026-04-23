@@ -96,10 +96,12 @@ export default function Estimates() {
           });
           form.reset();
         },
-        onError: () => {
+        onError: (error: Error) => {
           toast({
             title: "Error",
-            description: "There was a problem sending your request. Please try again.",
+            description:
+              error?.message ||
+              "There was a problem sending your request. Please try again.",
             variant: "destructive",
           });
         },
