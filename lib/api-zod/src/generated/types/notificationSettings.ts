@@ -8,10 +8,7 @@
 
 export interface NotificationSettings {
   recipients: string[];
-  /**
-   * E.164-formatted phone number to receive SMS alerts; null if unset.
-   * @nullable
-   */
-  smsRecipient: string | null;
+  /** E.164-formatted phone numbers that receive SMS alerts. Empty array means SMS is disabled. */
+  smsRecipients: string[];
   updatedAt: Date;
 }

@@ -379,11 +379,8 @@ export interface GalleryWithImages {
 
 export interface NotificationSettings {
   recipients: string[];
-  /**
-   * E.164-formatted phone number to receive SMS alerts; null if unset.
-   * @nullable
-   */
-  smsRecipient: string | null;
+  /** E.164-formatted phone numbers that receive SMS alerts. Empty array means SMS is disabled. */
+  smsRecipients: string[];
   updatedAt: string;
 }
 
@@ -394,13 +391,32 @@ export interface TestNotificationResult {
   error?: string | null;
 }
 
+export type TestSmsNotificationResultResultsItem = {
+  recipient: string;
+  delivered: boolean;
+  /** @nullable */
+  error?: string | null;
+};
+
 export interface TestSmsNotificationResult {
   delivered: boolean;
   configured: boolean;
-  /** @nullable */
-  recipient?: string | null;
+  /** Phone numbers the test was attempted against. */
+  recipients: string[];
+  /** Per-recipient delivery outcome. */
+  results: TestSmsNotificationResultResultsItem[];
   /** @nullable */
   error?: string | null;
+}
+
+export interface SendTestSmsInput {
+  /**
+   * If provided, send the test only to this phone number (must be one of the saved numbers). Otherwise send to all saved numbers.
+   * @maxLength 20
+   * @nullable
+   * @pattern ^\+[1-9]\d{1,14}$
+   */
+  recipient?: string | null;
 }
 
 export interface TestInAppNotificationResult {
@@ -431,12 +447,10 @@ export interface NotificationSettingsInput {
    */
   recipients: string[];
   /**
-   * E.164-formatted phone number (e.g. +15551234567); null or empty to clear.
-   * @maxLength 20
-   * @nullable
-   * @pattern ^\+[1-9]\d{1,14}$
+   * E.164-formatted phone numbers (e.g. +15551234567). Empty array disables SMS.
+   * @maxItems 20
    */
-  smsRecipient?: string | null;
+  smsRecipients: string[];
 }
 
 export interface ImageVariantsStatus {

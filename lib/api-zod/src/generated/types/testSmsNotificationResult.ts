@@ -5,12 +5,15 @@
  * Vision9 Solar API — public forms, admin auth, gallery CMS, object uploads.
  * OpenAPI spec version: 0.1.0
  */
+import type { TestSmsNotificationResultResultsItem } from "./testSmsNotificationResultResultsItem";
 
 export interface TestSmsNotificationResult {
   delivered: boolean;
   configured: boolean;
-  /** @nullable */
-  recipient?: string | null;
+  /** Phone numbers the test was attempted against. */
+  recipients: string[];
+  /** Per-recipient delivery outcome. */
+  results: TestSmsNotificationResultResultsItem[];
   /** @nullable */
   error?: string | null;
 }

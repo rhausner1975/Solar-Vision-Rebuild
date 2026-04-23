@@ -46,6 +46,7 @@ import type {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
   ResendNotificationInput,
+  SendTestSmsInput,
   StartBackfillImageVariantsParams,
   SubmissionAck,
   TestInAppNotificationResult,
@@ -2707,13 +2708,14 @@ export const useSendTestNotification = <
 };
 
 /**
- * @summary Send a test SMS to the configured Twilio recipient
+ * @summary Send a test SMS to one or all configured Twilio recipients
  */
 export const getSendTestNotificationSmsUrl = () => {
   return `/api/admin/notification-settings/test-sms`;
 };
 
 export const sendTestNotificationSms = async (
+  sendTestSmsInput?: SendTestSmsInput,
   options?: RequestInit,
 ): Promise<TestSmsNotificationResult> => {
   return customFetch<TestSmsNotificationResult>(
@@ -2721,6 +2723,8 @@ export const sendTestNotificationSms = async (
     {
       ...options,
       method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(sendTestSmsInput),
     },
   );
 };
@@ -2732,14 +2736,14 @@ export const getSendTestNotificationSmsMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof sendTestNotificationSms>>,
     TError,
-    void,
+    { data: BodyType<SendTestSmsInput> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof sendTestNotificationSms>>,
   TError,
-  void,
+  { data: BodyType<SendTestSmsInput> },
   TContext
 > => {
   const mutationKey = ["sendTestNotificationSms"];
@@ -2753,9 +2757,11 @@ export const getSendTestNotificationSmsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof sendTestNotificationSms>>,
-    void
-  > = () => {
-    return sendTestNotificationSms(requestOptions);
+    { data: BodyType<SendTestSmsInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return sendTestNotificationSms(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -2764,11 +2770,11 @@ export const getSendTestNotificationSmsMutationOptions = <
 export type SendTestNotificationSmsMutationResult = NonNullable<
   Awaited<ReturnType<typeof sendTestNotificationSms>>
 >;
-
+export type SendTestNotificationSmsMutationBody = BodyType<SendTestSmsInput>;
 export type SendTestNotificationSmsMutationError = ErrorType<unknown>;
 
 /**
- * @summary Send a test SMS to the configured Twilio recipient
+ * @summary Send a test SMS to one or all configured Twilio recipients
  */
 export const useSendTestNotificationSms = <
   TError = ErrorType<unknown>,
@@ -2777,14 +2783,14 @@ export const useSendTestNotificationSms = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof sendTestNotificationSms>>,
     TError,
-    void,
+    { data: BodyType<SendTestSmsInput> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof sendTestNotificationSms>>,
   TError,
-  void,
+  { data: BodyType<SendTestSmsInput> },
   TContext
 > => {
   return useMutation(getSendTestNotificationSmsMutationOptions(options));

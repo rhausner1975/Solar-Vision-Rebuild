@@ -110,15 +110,18 @@ async function recordAttempt(params: {
   }
 }
 
-async function getSmsRecipient(): Promise<string | undefined> {
+async function getSmsRecipients(): Promise<string[]> {
   try {
     const [row] = await db.select().from(notificationSettingsTable).limit(1);
-    const saved = row?.smsRecipient?.trim();
-    if (saved) return saved;
+    const saved = (row?.smsRecipients ?? [])
+      .map((s) => (typeof s === "string" ? s.trim() : ""))
+      .filter((s) => s.length > 0);
+    if (saved.length > 0) return Array.from(new Set(saved));
   } catch (err) {
-    logger.error({ err }, "Failed to load SMS recipient from database");
+    logger.error({ err }, "Failed to load SMS recipients from database");
   }
-  return FALLBACK_SMS_TO?.trim() || undefined;
+  const fallback = FALLBACK_SMS_TO?.trim();
+  return fallback ? [fallback] : [];
 }
 
 async function deliverEmail(
@@ -211,25 +214,37 @@ export async function sendTestNotificationEmail(): Promise<{
   return { delivered: false, recipients, error: outcome.error ?? "Unknown error" };
 }
 
-async function sendSms(message: string, related: RelatedRef): Promise<DeliveryOutcome> {
-  const recipient = await getSmsRecipient();
-  if (!recipient || !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
-    return {
-      status: "skipped",
-      error:
-        "SMS not configured: a recipient phone number must be saved in Notification Settings (or set NOTIFY_SMS_TO), and TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER must all be set",
-      permanent: true,
-    };
+function smsTwilioConfigured(): boolean {
+  return Boolean(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_FROM_NUMBER);
+}
+
+function smsConfigError(hasRecipients: boolean): string {
+  const missing = [
+    !hasRecipients && "at least one phone number saved in Notification Settings (or NOTIFY_SMS_TO)",
+    !TWILIO_ACCOUNT_SID && "TWILIO_ACCOUNT_SID",
+    !TWILIO_AUTH_TOKEN && "TWILIO_AUTH_TOKEN",
+    !TWILIO_FROM_NUMBER && "TWILIO_FROM_NUMBER",
+  ].filter(Boolean);
+  return `SMS not configured. Missing: ${missing.join(", ")}`;
+}
+
+async function sendSmsToRecipient(
+  recipient: string,
+  message: string,
+  related: RelatedRef,
+): Promise<DeliveryOutcome> {
+  if (!smsTwilioConfigured()) {
+    return { status: "skipped", error: smsConfigError(true), permanent: true };
   }
   const truncated =
     message.length > SMS_MAX_LENGTH ? `${message.slice(0, SMS_MAX_LENGTH - 1)}…` : message;
   const url = `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(
-    TWILIO_ACCOUNT_SID,
+    TWILIO_ACCOUNT_SID!,
   )}/Messages.json`;
   const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64");
   const body = new URLSearchParams({
     To: recipient,
-    From: TWILIO_FROM_NUMBER,
+    From: TWILIO_FROM_NUMBER!,
     Body: truncated,
   });
   try {
@@ -281,41 +296,120 @@ async function sendSms(message: string, related: RelatedRef): Promise<DeliveryOu
   }
 }
 
-export async function sendTestNotificationSms(): Promise<{
+async function sendSms(
+  message: string,
+  related: RelatedRef,
+  overrideRecipients?: string[],
+): Promise<DeliveryOutcome> {
+  const recipients =
+    overrideRecipients && overrideRecipients.length > 0
+      ? overrideRecipients
+      : await getSmsRecipients();
+  if (recipients.length === 0 || !smsTwilioConfigured()) {
+    return {
+      status: "skipped",
+      error: smsConfigError(recipients.length > 0),
+      permanent: true,
+    };
+  }
+  const outcomes = await Promise.all(
+    recipients.map((r) => sendSmsToRecipient(r, message, related)),
+  );
+  const anySent = outcomes.some((o) => o.status === "sent");
+  const anyFailed = outcomes.some((o) => o.status === "failed");
+  if (anySent && !anyFailed) {
+    return { status: "sent", sentAt: new Date() };
+  }
+  if (anySent && anyFailed) {
+    const failed = outcomes
+      .map((o, i) => (o.status === "failed" ? `${recipients[i]}: ${o.error ?? "failed"}` : null))
+      .filter(Boolean)
+      .join("; ");
+    return {
+      status: "sent",
+      sentAt: new Date(),
+      error: `Partial delivery — failed: ${failed}`,
+    };
+  }
+  const errors = outcomes
+    .map((o, i) => `${recipients[i]}: ${o.error ?? o.status}`)
+    .join("; ");
+  // Mark permanent only if every failed outcome is itself permanent (i.e. retry will not help).
+  const allPermanent = outcomes
+    .filter((o) => o.status === "failed")
+    .every((o) => o.permanent === true);
+  return {
+    status: "failed",
+    error: errors,
+    permanent: outcomes.some((o) => o.status === "failed") ? allPermanent : false,
+  };
+}
+
+export async function sendTestNotificationSms(targetRecipient?: string | null): Promise<{
   delivered: boolean;
-  recipient?: string;
   configured: boolean;
+  recipients: string[];
+  results: { recipient: string; delivered: boolean; error?: string | null }[];
   error?: string;
 }> {
-  const recipient = await getSmsRecipient();
-  if (!recipient || !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
-    const missing = [
-      !recipient && "a saved phone number in Notification Settings (or NOTIFY_SMS_TO env var)",
-      !TWILIO_ACCOUNT_SID && "TWILIO_ACCOUNT_SID",
-      !TWILIO_AUTH_TOKEN && "TWILIO_AUTH_TOKEN",
-      !TWILIO_FROM_NUMBER && "TWILIO_FROM_NUMBER",
-    ]
-      .filter(Boolean)
-      .join(", ");
-    logger.warn({ missing }, "Test SMS skipped: not configured");
+  const saved = await getSmsRecipients();
+  let recipients: string[];
+  if (targetRecipient) {
+    const trimmed = targetRecipient.trim();
+    if (!saved.includes(trimmed)) {
+      return {
+        delivered: false,
+        configured: smsTwilioConfigured(),
+        recipients: [],
+        results: [],
+        error: `Phone number ${trimmed} is not in the saved SMS recipients. Save it first.`,
+      };
+    }
+    recipients = [trimmed];
+  } else {
+    recipients = saved;
+  }
+  if (recipients.length === 0 || !smsTwilioConfigured()) {
+    const error = smsConfigError(recipients.length > 0);
+    logger.warn({ error }, "Test SMS skipped: not configured");
     return {
       delivered: false,
-      configured: false,
-      error: `SMS is not configured. Missing: ${missing}`,
+      configured: smsTwilioConfigured(),
+      recipients,
+      results: [],
+      error,
     };
   }
   const message = `[TEST] Vision9 Solar SMS alert test sent at ${new Date().toISOString()}. If you received this, lead alerts to this number are working.`;
-  const outcome = await sendSms(message, { kind: "test", id: null });
-  if (outcome.status === "sent") {
-    logger.info({ recipient }, "Sent test notification SMS");
-    return { delivered: true, configured: true, recipient };
-  }
-  logger.error({ error: outcome.error, recipient }, "Failed to send test notification SMS");
-  return {
-    delivered: false,
-    configured: true,
+  const outcomes = await Promise.all(
+    recipients.map(async (r) => ({
+      recipient: r,
+      outcome: await sendSmsToRecipient(r, message, { kind: "test", id: null }),
+    })),
+  );
+  const results = outcomes.map(({ recipient, outcome }) => ({
     recipient,
-    error: outcome.error ?? "Unknown error",
+    delivered: outcome.status === "sent",
+    error: outcome.error ?? null,
+  }));
+  const anyDelivered = results.some((r) => r.delivered);
+  const anyFailed = results.some((r) => !r.delivered);
+  if (anyDelivered) {
+    logger.info({ recipients }, "Sent test notification SMS");
+  } else {
+    logger.error({ results }, "Failed to send test notification SMS to all recipients");
+  }
+  return {
+    delivered: anyDelivered && !anyFailed,
+    configured: true,
+    recipients,
+    results,
+    error: anyFailed
+      ? results
+          .filter((r) => !r.delivered)
+          .map((r) => `${r.recipient}: ${r.error ?? "failed"}`)
+          .join("; ")
+      : undefined,
   };
 }
 

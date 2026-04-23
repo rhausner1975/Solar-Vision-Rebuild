@@ -3,7 +3,16 @@ import { Helmet } from "react-helmet-async";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  Send,
+  MessageSquare,
+  Bell,
+} from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetNotificationSettings,
@@ -17,7 +26,6 @@ import {
   getListInAppNotificationsQueryKey,
   getGetNotificationLogQueryKey,
 } from "@workspace/api-client-react";
-import { Send, MessageSquare, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -30,6 +38,8 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 
+const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
+
 const formSchema = z.object({
   recipients: z
     .array(
@@ -39,13 +49,16 @@ const formSchema = z.object({
     )
     .min(1, "Add at least one recipient")
     .max(20, "At most 20 recipients allowed"),
-  smsRecipient: z
-    .string()
-    .trim()
-    .refine(
-      (v) => v === "" || /^\+[1-9]\d{1,14}$/.test(v),
-      "Enter a phone number in E.164 format (e.g. +15551234567)",
-    ),
+  smsRecipients: z
+    .array(
+      z.object({
+        phone: z
+          .string()
+          .trim()
+          .regex(PHONE_REGEX, "Enter a phone number in E.164 format (e.g. +15551234567)"),
+      }),
+    )
+    .max(20, "At most 20 phone numbers allowed"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -72,6 +85,7 @@ export default function NotificationSettings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [hydrated, setHydrated] = useState(false);
+  const [pendingSmsTarget, setPendingSmsTarget] = useState<string | null>(null);
   const { data: logEntries, isLoading: isLoadingLog } = useGetNotificationLog();
   const retryEntry = useRetryNotificationLogEntry();
   const [retryingId, setRetryingId] = useState<number | null>(null);
@@ -179,68 +193,92 @@ export default function NotificationSettings() {
     });
   }
 
-  function handleSendTestSms() {
-    sendTestSms.mutate(undefined, {
-      onSuccess: (result) => {
-        if (result.delivered) {
+  function handleSendTestSms(target: string | null) {
+    setPendingSmsTarget(target);
+    sendTestSms.mutate(
+      { data: target ? { recipient: target } : {} },
+      {
+        onSuccess: (result) => {
+          setPendingSmsTarget(null);
+          if (result.delivered) {
+            toast({
+              title: "Test SMS sent",
+              description: `Sent to ${result.recipients.join(", ") || "the configured number(s)"}.`,
+            });
+          } else if (!result.configured) {
+            toast({
+              title: "SMS is not configured",
+              description:
+                result.error ??
+                "Save at least one phone number above (or set NOTIFY_SMS_TO) and configure Twilio (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER).",
+              variant: "destructive",
+            });
+          } else if (result.recipients.length === 0) {
+            toast({
+              title: "No phone numbers to test",
+              description:
+                result.error ??
+                "Add and save at least one SMS recipient before sending a test.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Test SMS failed",
+              description:
+                result.error ?? "The server tried to send the SMS but Twilio rejected it.",
+              variant: "destructive",
+            });
+          }
+        },
+        onError: () => {
+          setPendingSmsTarget(null);
           toast({
-            title: "Test SMS sent",
-            description: `Sent to ${result.recipient ?? "the configured number"}. Check the phone to confirm delivery.`,
-          });
-        } else if (!result.configured) {
-          toast({
-            title: "SMS is not configured",
-            description:
-              result.error ??
-              "Save a phone number above (or set NOTIFY_SMS_TO) and configure Twilio (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER).",
+            title: "Could not send test SMS",
+            description: "The request failed before the SMS could be sent.",
             variant: "destructive",
           });
-        } else {
-          toast({
-            title: "Test SMS failed",
-            description:
-              result.error ?? "The server tried to send the SMS but Twilio rejected it.",
-            variant: "destructive",
-          });
-        }
+        },
       },
-      onError: () => {
-        toast({
-          title: "Could not send test SMS",
-          description: "The request failed before the SMS could be sent.",
-          variant: "destructive",
-        });
-      },
-    });
+    );
   }
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { recipients: [{ email: "" }], smsRecipient: "" },
+    defaultValues: { recipients: [{ email: "" }], smsRecipients: [] },
   });
 
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "recipients",
-  });
+  const {
+    fields: emailFields,
+    append: appendEmail,
+    remove: removeEmail,
+  } = useFieldArray({ control: form.control, name: "recipients" });
+
+  const {
+    fields: smsFields,
+    append: appendSms,
+    remove: removeSms,
+  } = useFieldArray({ control: form.control, name: "smsRecipients" });
 
   useEffect(() => {
     if (!hydrated && data) {
       const recipients = data.recipients?.length
         ? data.recipients.map((email) => ({ email }))
         : [{ email: "" }];
-      form.reset({ recipients, smsRecipient: data.smsRecipient ?? "" });
+      const smsRecipients = (data.smsRecipients ?? []).map((phone) => ({ phone }));
+      form.reset({ recipients, smsRecipients });
       setHydrated(true);
     }
   }, [data, form, hydrated]);
 
   function onSubmit(values: FormValues) {
-    const trimmedSms = values.smsRecipient.trim();
+    const smsRecipients = Array.from(
+      new Set(values.smsRecipients.map((r) => r.phone.trim()).filter((p) => p.length > 0)),
+    );
     update.mutate(
       {
         data: {
           recipients: values.recipients.map((r) => r.email),
-          smsRecipient: trimmedSms === "" ? null : trimmedSms,
+          smsRecipients,
         },
       },
       {
@@ -255,6 +293,8 @@ export default function NotificationSettings() {
     );
   }
 
+  const savedSmsRecipients = data?.smsRecipients ?? [];
+
   return (
     <>
       <Helmet>
@@ -265,7 +305,7 @@ export default function NotificationSettings() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Notification Settings</h1>
           <p className="text-secondary">
-            Choose who receives an email when a new contact submission or estimate request comes in.
+            Choose who receives an email or SMS when a new contact submission or estimate request comes in.
           </p>
         </div>
 
@@ -277,7 +317,7 @@ export default function NotificationSettings() {
           ) : (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                {fields.map((field, index) => (
+                {emailFields.map((field, index) => (
                   <FormField
                     key={field.id}
                     control={form.control}
@@ -299,8 +339,8 @@ export default function NotificationSettings() {
                             type="button"
                             variant="outline"
                             size="icon"
-                            onClick={() => remove(index)}
-                            disabled={fields.length <= 1}
+                            onClick={() => removeEmail(index)}
+                            disabled={emailFields.length <= 1}
                             aria-label="Remove recipient"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -312,38 +352,98 @@ export default function NotificationSettings() {
                   />
                 ))}
 
-                <FormField
-                  control={form.control}
-                  name="smsRecipient"
-                  render={({ field: inputField }) => (
-                    <FormItem className="pt-4 border-t">
-                      <FormLabel>SMS recipient phone number</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="tel"
-                          placeholder="+15551234567"
-                          autoComplete="off"
-                          {...inputField}
-                        />
-                      </FormControl>
-                      <p className="text-xs text-secondary">
-                        Phone number that receives a text message for new leads. Use E.164 format
-                        (country code with +). Leave blank to disable SMS alerts.
-                      </p>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => appendEmail({ email: "" })}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add another email
+                </Button>
 
-                <div className="flex flex-wrap items-center gap-3 pt-2">
+                <div className="pt-4 border-t space-y-3">
+                  <div>
+                    <FormLabel>SMS recipient phone numbers</FormLabel>
+                    <p className="text-xs text-secondary mt-1">
+                      Phone numbers that receive a text message for new leads. Use E.164 format
+                      (country code with +). Add as many as needed; leave empty to disable SMS.
+                    </p>
+                  </div>
+
+                  {smsFields.length === 0 ? (
+                    <p className="text-sm text-secondary italic">No SMS recipients configured.</p>
+                  ) : (
+                    smsFields.map((field, index) => {
+                      const currentValue = form.watch(`smsRecipients.${index}.phone`)?.trim() ?? "";
+                      const isSavedAndValid =
+                        PHONE_REGEX.test(currentValue) && savedSmsRecipients.includes(currentValue);
+                      return (
+                        <FormField
+                          key={field.id}
+                          control={form.control}
+                          name={`smsRecipients.${index}.phone`}
+                          render={({ field: inputField }) => (
+                            <FormItem>
+                              <FormLabel className="sr-only">SMS phone number</FormLabel>
+                              <div className="flex gap-2">
+                                <FormControl>
+                                  <Input
+                                    type="tel"
+                                    placeholder="+15551234567"
+                                    autoComplete="off"
+                                    {...inputField}
+                                  />
+                                </FormControl>
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => handleSendTestSms(currentValue)}
+                                  disabled={
+                                    !isSavedAndValid ||
+                                    (sendTestSms.isPending && pendingSmsTarget === currentValue)
+                                  }
+                                  title={
+                                    isSavedAndValid
+                                      ? "Send a test SMS to this number"
+                                      : "Save this phone number first"
+                                  }
+                                >
+                                  <MessageSquare className="h-4 w-4 mr-1" />
+                                  {sendTestSms.isPending && pendingSmsTarget === currentValue
+                                    ? "Sending..."
+                                    : "Test"}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => removeSms(index)}
+                                  aria-label="Remove SMS recipient"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      );
+                    })
+                  )}
+
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => append({ email: "" })}
+                    onClick={() => appendSms({ phone: "" })}
+                    disabled={smsFields.length >= 20}
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add another recipient
+                    Add a phone number
                   </Button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-4 border-t">
                   <Button type="submit" disabled={update.isPending}>
                     {update.isPending ? "Saving..." : "Save changes"}
                   </Button>
@@ -386,6 +486,22 @@ export default function NotificationSettings() {
                   <Button
                     type="button"
                     variant="secondary"
+                    onClick={() => handleSendTestSms(null)}
+                    disabled={sendTestSms.isPending || savedSmsRecipients.length === 0}
+                    title={
+                      savedSmsRecipients.length === 0
+                        ? "Save at least one phone number first"
+                        : "Send a test SMS to every saved number"
+                    }
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    {sendTestSms.isPending && pendingSmsTarget === null
+                      ? "Sending..."
+                      : "Send test SMS to all"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
                     onClick={handleSendTestInApp}
                     disabled={sendTestInApp.isPending}
                   >
@@ -395,11 +511,9 @@ export default function NotificationSettings() {
                 </div>
 
                 <p className="text-xs text-secondary pt-2">
-                  If no recipients are configured, notifications fall back to the default address.
-                  The test email uses the saved recipients on the server, so save your changes first
-                  if you've just edited the list. The test SMS goes to the saved phone number above
-                  (or NOTIFY_SMS_TO if nothing is saved). Twilio credentials must also be configured
-                  on the server.
+                  Save your changes before sending a test SMS — the server uses the saved list, not
+                  the current form values. Twilio credentials must also be configured on the server
+                  for SMS to work.
                 </p>
               </form>
             </Form>

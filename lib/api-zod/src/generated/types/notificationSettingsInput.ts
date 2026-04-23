@@ -13,10 +13,8 @@ export interface NotificationSettingsInput {
    */
   recipients: string[];
   /**
-   * E.164-formatted phone number (e.g. +15551234567); null or empty to clear.
-   * @maxLength 20
-   * @nullable
-   * @pattern ^\+[1-9]\d{1,14}$
+   * E.164-formatted phone numbers (e.g. +15551234567). Empty array disables SMS.
+   * @maxItems 20
    */
-  smsRecipient?: string | null;
+  smsRecipients: string[];
 }

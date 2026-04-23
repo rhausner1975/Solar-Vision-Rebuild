@@ -707,21 +707,28 @@ router.delete("/admin/gallery-images/:id", requireAdmin, async (req, res): Promi
 
 const FALLBACK_NOTIFY_TO = process.env["NOTIFY_EMAIL_TO"] ?? "info@vision9.biz";
 
-const FALLBACK_SMS_RECIPIENT = process.env["NOTIFY_SMS_TO"] ?? null;
+const FALLBACK_SMS_RECIPIENTS = (() => {
+  const raw = process.env["NOTIFY_SMS_TO"]?.trim();
+  return raw ? [raw] : [];
+})();
 
 router.get("/admin/notification-settings", requireAdmin, async (_req, res): Promise<void> => {
   const [row] = await db.select().from(notificationSettingsTable).limit(1);
   if (!row) {
     res.json({
       recipients: [FALLBACK_NOTIFY_TO],
-      smsRecipient: FALLBACK_SMS_RECIPIENT,
+      smsRecipients: FALLBACK_SMS_RECIPIENTS,
       updatedAt: new Date().toISOString(),
     });
     return;
   }
+  const smsRecipients =
+    row.smsRecipients && row.smsRecipients.length > 0
+      ? row.smsRecipients
+      : FALLBACK_SMS_RECIPIENTS;
   res.json({
     recipients: row.recipients,
-    smsRecipient: row.smsRecipient ?? FALLBACK_SMS_RECIPIENT,
+    smsRecipients,
     updatedAt: row.updatedAt,
   });
 });
@@ -735,26 +742,30 @@ router.put("/admin/notification-settings", requireAdmin, async (req, res): Promi
   const recipients = Array.from(
     new Set(parsed.data.recipients.map((r) => r.trim().toLowerCase()).filter((r) => r.length > 0)),
   );
-  const rawSms = parsed.data.smsRecipient;
-  const trimmedSms = typeof rawSms === "string" ? rawSms.trim() : rawSms;
-  const smsRecipient = trimmedSms && trimmedSms.length > 0 ? trimmedSms : null;
+  const smsRecipients = Array.from(
+    new Set(
+      (parsed.data.smsRecipients ?? [])
+        .map((r) => (typeof r === "string" ? r.trim() : ""))
+        .filter((r) => r.length > 0),
+    ),
+  );
   const [existing] = await db.select().from(notificationSettingsTable).limit(1);
   let row;
   if (existing) {
     [row] = await db
       .update(notificationSettingsTable)
-      .set({ recipients, smsRecipient })
+      .set({ recipients, smsRecipients })
       .where(eq(notificationSettingsTable.id, existing.id))
       .returning();
   } else {
     [row] = await db
       .insert(notificationSettingsTable)
-      .values({ id: 1, recipients, smsRecipient })
+      .values({ id: 1, recipients, smsRecipients })
       .returning();
   }
   res.json({
     recipients: row!.recipients,
-    smsRecipient: row!.smsRecipient,
+    smsRecipients: row!.smsRecipients,
     updatedAt: row!.updatedAt,
   });
 });
@@ -772,8 +783,14 @@ router.post(
 router.post(
   "/admin/notification-settings/test-sms",
   requireAdmin,
-  async (_req, res): Promise<void> => {
-    const result = await sendTestNotificationSms();
+  async (req, res): Promise<void> => {
+    const body = (req.body ?? {}) as { recipient?: unknown };
+    const rawRecipient = typeof body.recipient === "string" ? body.recipient.trim() : "";
+    if (rawRecipient && !/^\+[1-9]\d{1,14}$/.test(rawRecipient)) {
+      res.status(400).json({ error: "recipient must be in E.164 format (e.g. +15551234567)" });
+      return;
+    }
+    const result = await sendTestNotificationSms(rawRecipient || null);
     res.json(result);
   },
 );

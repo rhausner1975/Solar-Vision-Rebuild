@@ -608,11 +608,10 @@ export const GetBackfillImageVariantsJobResponse = zod.object({
  */
 export const GetNotificationSettingsResponse = zod.object({
   recipients: zod.array(zod.string().email()),
-  smsRecipient: zod
-    .string()
-    .nullable()
+  smsRecipients: zod
+    .array(zod.string())
     .describe(
-      "E.164-formatted phone number to receive SMS alerts; null if unset.",
+      "E.164-formatted phone numbers that receive SMS alerts. Empty array means SMS is disabled.",
     ),
   updatedAt: zod.coerce.date(),
 });
@@ -624,11 +623,12 @@ export const updateNotificationSettingsBodyRecipientsItemMax = 320;
 
 export const updateNotificationSettingsBodyRecipientsMax = 20;
 
-export const updateNotificationSettingsBodySmsRecipientMax = 20;
+export const updateNotificationSettingsBodySmsRecipientsItemMax = 20;
 
-export const updateNotificationSettingsBodySmsRecipientRegExp = new RegExp(
+export const updateNotificationSettingsBodySmsRecipientsItemRegExp = new RegExp(
   "^\\+[1-9]\\d{1,14}$",
 );
+export const updateNotificationSettingsBodySmsRecipientsMax = 20;
 
 export const UpdateNotificationSettingsBody = zod.object({
   recipients: zod
@@ -637,23 +637,25 @@ export const UpdateNotificationSettingsBody = zod.object({
     )
     .min(1)
     .max(updateNotificationSettingsBodyRecipientsMax),
-  smsRecipient: zod
-    .string()
-    .max(updateNotificationSettingsBodySmsRecipientMax)
-    .regex(updateNotificationSettingsBodySmsRecipientRegExp)
-    .nullish()
+  smsRecipients: zod
+    .array(
+      zod
+        .string()
+        .max(updateNotificationSettingsBodySmsRecipientsItemMax)
+        .regex(updateNotificationSettingsBodySmsRecipientsItemRegExp),
+    )
+    .max(updateNotificationSettingsBodySmsRecipientsMax)
     .describe(
-      "E.164-formatted phone number (e.g. +15551234567); null or empty to clear.",
+      "E.164-formatted phone numbers (e.g. +15551234567). Empty array disables SMS.",
     ),
 });
 
 export const UpdateNotificationSettingsResponse = zod.object({
   recipients: zod.array(zod.string().email()),
-  smsRecipient: zod
-    .string()
-    .nullable()
+  smsRecipients: zod
+    .array(zod.string())
     .describe(
-      "E.164-formatted phone number to receive SMS alerts; null if unset.",
+      "E.164-formatted phone numbers that receive SMS alerts. Empty array means SMS is disabled.",
     ),
   updatedAt: zod.coerce.date(),
 });
@@ -668,12 +670,40 @@ export const SendTestNotificationResponse = zod.object({
 });
 
 /**
- * @summary Send a test SMS to the configured Twilio recipient
+ * @summary Send a test SMS to one or all configured Twilio recipients
  */
+export const sendTestNotificationSmsBodyRecipientMax = 20;
+
+export const sendTestNotificationSmsBodyRecipientRegExp = new RegExp(
+  "^\\+[1-9]\\d{1,14}$",
+);
+
+export const SendTestNotificationSmsBody = zod.object({
+  recipient: zod
+    .string()
+    .max(sendTestNotificationSmsBodyRecipientMax)
+    .regex(sendTestNotificationSmsBodyRecipientRegExp)
+    .nullish()
+    .describe(
+      "If provided, send the test only to this phone number (must be one of the saved numbers). Otherwise send to all saved numbers.",
+    ),
+});
+
 export const SendTestNotificationSmsResponse = zod.object({
   delivered: zod.boolean(),
   configured: zod.boolean(),
-  recipient: zod.string().nullish(),
+  recipients: zod
+    .array(zod.string())
+    .describe("Phone numbers the test was attempted against."),
+  results: zod
+    .array(
+      zod.object({
+        recipient: zod.string(),
+        delivered: zod.boolean(),
+        error: zod.string().nullish(),
+      }),
+    )
+    .describe("Per-recipient delivery outcome."),
   error: zod.string().nullish(),
 });
 

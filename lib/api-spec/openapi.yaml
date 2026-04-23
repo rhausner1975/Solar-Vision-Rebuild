@@ -542,7 +542,12 @@ paths:
     post:
       operationId: sendTestNotificationSms
       tags: [admin]
-      summary: Send a test SMS to the configured Twilio recipient
+      summary: Send a test SMS to one or all configured Twilio recipients
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SendTestSmsInput" }
       responses:
         "200":
           description: Result of the test SMS send (200 indicates the request was processed; check `delivered` and `configured`)
@@ -853,11 +858,12 @@ components:
         recipients:
           type: array
           items: { type: string, format: email }
-        smsRecipient:
-          type: ["string", "null"]
-          description: E.164-formatted phone number to receive SMS alerts; null if unset.
+        smsRecipients:
+          type: array
+          description: E.164-formatted phone numbers that receive SMS alerts. Empty array means SMS is disabled.
+          items: { type: string }
         updatedAt: { type: string, format: date-time }
-      required: [recipients, smsRecipient, updatedAt]
+      required: [recipients, smsRecipients, updatedAt]
     TestNotificationResult:
       type: object
       properties:
@@ -872,9 +878,30 @@ components:
       properties:
         delivered: { type: boolean }
         configured: { type: boolean }
-        recipient: { type: ["string", "null"] }
+        recipients:
+          type: array
+          description: Phone numbers the test was attempted against.
+          items: { type: string }
+        results:
+          type: array
+          description: Per-recipient delivery outcome.
+          items:
+            type: object
+            properties:
+              recipient: { type: string }
+              delivered: { type: boolean }
+              error: { type: ["string", "null"] }
+            required: [recipient, delivered]
         error: { type: ["string", "null"] }
-      required: [delivered, configured]
+      required: [delivered, configured, recipients, results]
+    SendTestSmsInput:
+      type: object
+      properties:
+        recipient:
+          type: ["string", "null"]
+          description: If provided, send the test only to this phone number (must be one of the saved numbers). Otherwise send to all saved numbers.
+          maxLength: 20
+          pattern: "^\\+[1-9]\\d{1,14}$"
     TestInAppNotificationResult:
       type: object
       properties:
@@ -907,12 +934,15 @@ components:
           minItems: 1
           maxItems: 20
           items: { type: string, format: email, maxLength: 320 }
-        smsRecipient:
-          type: ["string", "null"]
-          description: E.164-formatted phone number (e.g. +15551234567); null or empty to clear.
-          maxLength: 20
-          pattern: "^\\+[1-9]\\d{1,14}$"
-      required: [recipients]
+        smsRecipients:
+          type: array
+          description: E.164-formatted phone numbers (e.g. +15551234567). Empty array disables SMS.
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 20
+            pattern: "^\\+[1-9]\\d{1,14}$"
+      required: [recipients, smsRecipients]
 
     ImageVariantsStatus:
       type: object
