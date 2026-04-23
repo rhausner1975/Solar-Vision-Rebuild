@@ -34,6 +34,16 @@ export const testEmailLimiter = rateLimit({
   },
 });
 
+export const notificationRetryLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: "Too many retry attempts. Please wait a minute before trying again.",
+  },
+});
+
 export const publicFormLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   limit: 20,

@@ -54,6 +54,7 @@ import {
   passwordResetRequestLimiter,
   passwordResetConfirmLimiter,
   testEmailLimiter,
+  notificationRetryLimiter,
 } from "../lib/rateLimit";
 import { sendMail, getAdminNotificationEmail } from "../lib/mailer";
 import { ObjectStorageService } from "../lib/objectStorage";
@@ -935,6 +936,7 @@ router.post(
   "/admin/notification-log/:id/retry",
   sameOriginGuard,
   requireAdmin,
+  notificationRetryLimiter,
   async (req, res): Promise<void> => {
     const idParam = Number(req.params["id"]);
     if (!Number.isInteger(idParam) || idParam <= 0) {
