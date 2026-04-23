@@ -377,6 +377,15 @@ export interface TestNotificationResult {
   error?: string | null;
 }
 
+export interface TestSmsNotificationResult {
+  delivered: boolean;
+  configured: boolean;
+  /** @nullable */
+  recipient?: string | null;
+  /** @nullable */
+  error?: string | null;
+}
+
 export interface NotificationSettingsInput {
   /**
    * @minItems 1

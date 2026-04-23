@@ -43,6 +43,7 @@ import type {
   ResendNotificationInput,
   SubmissionAck,
   TestNotificationResult,
+  TestSmsNotificationResult,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2346,6 +2347,90 @@ export const useSendTestNotification = <
   TContext
 > => {
   return useMutation(getSendTestNotificationMutationOptions(options));
+};
+
+/**
+ * @summary Send a test SMS to the configured Twilio recipient
+ */
+export const getSendTestNotificationSmsUrl = () => {
+  return `/api/admin/notification-settings/test-sms`;
+};
+
+export const sendTestNotificationSms = async (
+  options?: RequestInit,
+): Promise<TestSmsNotificationResult> => {
+  return customFetch<TestSmsNotificationResult>(
+    getSendTestNotificationSmsUrl(),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getSendTestNotificationSmsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendTestNotificationSms>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendTestNotificationSms>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["sendTestNotificationSms"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendTestNotificationSms>>,
+    void
+  > = () => {
+    return sendTestNotificationSms(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendTestNotificationSmsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendTestNotificationSms>>
+>;
+
+export type SendTestNotificationSmsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Send a test SMS to the configured Twilio recipient
+ */
+export const useSendTestNotificationSms = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendTestNotificationSms>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendTestNotificationSms>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getSendTestNotificationSmsMutationOptions(options));
 };
 
 /**

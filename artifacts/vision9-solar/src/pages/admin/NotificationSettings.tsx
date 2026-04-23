@@ -9,9 +9,10 @@ import {
   useGetNotificationSettings,
   useUpdateNotificationSettings,
   useSendTestNotification,
+  useSendTestNotificationSms,
   getGetNotificationSettingsQueryKey,
 } from "@workspace/api-client-react";
-import { Send } from "lucide-react";
+import { Send, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -41,6 +42,7 @@ export default function NotificationSettings() {
   const { data, isLoading } = useGetNotificationSettings();
   const update = useUpdateNotificationSettings();
   const sendTest = useSendTestNotification();
+  const sendTestSms = useSendTestNotificationSms();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [hydrated, setHydrated] = useState(false);
@@ -77,6 +79,41 @@ export default function NotificationSettings() {
         toast({
           title: "Could not send test email",
           description: "The request failed before the email could be sent.",
+          variant: "destructive",
+        });
+      },
+    });
+  }
+
+  function handleSendTestSms() {
+    sendTestSms.mutate(undefined, {
+      onSuccess: (result) => {
+        if (result.delivered) {
+          toast({
+            title: "Test SMS sent",
+            description: `Sent to ${result.recipient ?? "the configured number"}. Check the phone to confirm delivery.`,
+          });
+        } else if (!result.configured) {
+          toast({
+            title: "SMS is not configured",
+            description:
+              result.error ??
+              "Twilio environment variables are missing. Set NOTIFY_SMS_TO, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Test SMS failed",
+            description:
+              result.error ?? "The server tried to send the SMS but Twilio rejected it.",
+            variant: "destructive",
+          });
+        }
+      },
+      onError: () => {
+        toast({
+          title: "Could not send test SMS",
+          description: "The request failed before the SMS could be sent.",
           variant: "destructive",
         });
       },
@@ -196,12 +233,22 @@ export default function NotificationSettings() {
                     <Send className="h-4 w-4 mr-2" />
                     {sendTest.isPending ? "Sending..." : "Send test email"}
                   </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleSendTestSms}
+                    disabled={sendTestSms.isPending}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    {sendTestSms.isPending ? "Sending..." : "Send test SMS"}
+                  </Button>
                 </div>
 
                 <p className="text-xs text-secondary pt-2">
                   If no recipients are configured, notifications fall back to the default address.
                   The test email uses the saved recipients on the server, so save your changes first
-                  if you've just edited the list.
+                  if you've just edited the list. The test SMS goes to the phone number configured
+                  via the Twilio environment variables on the server.
                 </p>
               </form>
             </Form>

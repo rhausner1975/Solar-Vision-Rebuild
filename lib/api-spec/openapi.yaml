@@ -464,6 +464,18 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/TestNotificationResult" }
 
+  /admin/notification-settings/test-sms:
+    post:
+      operationId: sendTestNotificationSms
+      tags: [admin]
+      summary: Send a test SMS to the configured Twilio recipient
+      responses:
+        "200":
+          description: Result of the test SMS send (200 indicates the request was processed; check `delivered` and `configured`)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestSmsNotificationResult" }
+
   /storage/uploads/request-url:
     post:
       operationId: requestUploadUrl
@@ -698,6 +710,14 @@ components:
           items: { type: string, format: email }
         error: { type: ["string", "null"] }
       required: [delivered, recipients]
+    TestSmsNotificationResult:
+      type: object
+      properties:
+        delivered: { type: boolean }
+        configured: { type: boolean }
+        recipient: { type: ["string", "null"] }
+        error: { type: ["string", "null"] }
+      required: [delivered, configured]
     NotificationSettingsInput:
       type: object
       properties:

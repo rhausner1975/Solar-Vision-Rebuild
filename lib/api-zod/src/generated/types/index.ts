@@ -35,3 +35,4 @@ export * from "./resendNotificationInput";
 export * from "./resendNotificationInputChannelsItem";
 export * from "./submissionAck";
 export * from "./testNotificationResult";
+export * from "./testSmsNotificationResult";

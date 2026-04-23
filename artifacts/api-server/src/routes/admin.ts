@@ -57,6 +57,7 @@ import {
   resendContactNotification,
   resendEstimateNotification,
   sendTestNotificationEmail,
+  sendTestNotificationSms,
   type Channel,
 } from "../lib/notify";
 
@@ -565,6 +566,15 @@ router.post(
   testEmailLimiter,
   async (_req, res): Promise<void> => {
     const result = await sendTestNotificationEmail();
+    res.json(result);
+  },
+);
+
+router.post(
+  "/admin/notification-settings/test-sms",
+  requireAdmin,
+  async (_req, res): Promise<void> => {
+    const result = await sendTestNotificationSms();
     res.json(result);
   },
 );

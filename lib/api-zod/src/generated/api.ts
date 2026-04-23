@@ -571,6 +571,16 @@ export const SendTestNotificationResponse = zod.object({
 });
 
 /**
+ * @summary Send a test SMS to the configured Twilio recipient
+ */
+export const SendTestNotificationSmsResponse = zod.object({
+  delivered: zod.boolean(),
+  configured: zod.boolean(),
+  recipient: zod.string().nullish(),
+  error: zod.string().nullish(),
+});
+
+/**
  * @summary Get a presigned upload URL
  */
 export const RequestUploadUrlBody = zod.object({

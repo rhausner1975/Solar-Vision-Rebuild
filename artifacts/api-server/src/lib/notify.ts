@@ -164,6 +164,50 @@ async function sendSms(message: string): Promise<DeliveryOutcome> {
   }
 }
 
+export async function sendTestNotificationSms(): Promise<{
+  delivered: boolean;
+  recipient?: string;
+  configured: boolean;
+  error?: string;
+}> {
+  if (!NOTIFY_SMS_TO || !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
+    const missing = [
+      !NOTIFY_SMS_TO && "NOTIFY_SMS_TO",
+      !TWILIO_ACCOUNT_SID && "TWILIO_ACCOUNT_SID",
+      !TWILIO_AUTH_TOKEN && "TWILIO_AUTH_TOKEN",
+      !TWILIO_FROM_NUMBER && "TWILIO_FROM_NUMBER",
+    ]
+      .filter(Boolean)
+      .join(", ");
+    logger.warn({ missing }, "Test SMS skipped: Twilio env vars not configured");
+    return {
+      delivered: false,
+      configured: false,
+      error: `SMS is not configured. Missing environment variables: ${missing}`,
+    };
+  }
+  const message = `[TEST] Vision9 Solar SMS alert test sent at ${new Date().toISOString()}. If you received this, lead alerts to this number are working.`;
+  try {
+    await sendSms(message);
+    logger.info({ recipient: NOTIFY_SMS_TO }, "Sent test notification SMS");
+    return { delivered: true, configured: true, recipient: NOTIFY_SMS_TO };
+  } catch (err) {
+    logger.error({ err }, "Failed to send test notification SMS");
+    const errMessage = err instanceof Error ? err.message : "Unknown error";
+    return { delivered: false, configured: true, recipient: NOTIFY_SMS_TO, error: errMessage };
+  }
+}
+
+function dispatchSms(message: string, context: string): void {
+  if (!NOTIFY_SMS_TO || !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
+    logger.warn({ context }, "SMS notification skipped: Twilio env vars not configured");
+    return;
+  }
+  sendSms(message).catch((err) => {
+    logger.error({ err, context }, "Failed to send SMS notification");
+  });
+}
+
 const DEFAULT_DEDUP_WINDOW_MS = 5 * 60 * 1000;
 const NOTIFY_DEDUP_WINDOW_MS = (() => {
   const raw = process.env["NOTIFY_DEDUP_WINDOW_MS"];
