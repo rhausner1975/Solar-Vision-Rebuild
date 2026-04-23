@@ -100,11 +100,17 @@ router.post("/contact-submissions", publicFormLimiter, async (req, res): Promise
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const {
+    turnstileToken: _t,
+    website: _w,
+    formMountedAt: _f,
+    ...contactValues
+  } = parsed.data;
   const [row] = await db
     .insert(contactSubmissionsTable)
-    .values(parsed.data)
+    .values(contactValues)
     .returning({ id: contactSubmissionsTable.id });
-  notifyContactSubmission(row.id, parsed.data);
+  notifyContactSubmission(row.id, contactValues);
   res.status(201).json({ id: row.id, ok: true });
 });
 
@@ -134,11 +140,17 @@ router.post("/estimate-requests", publicFormLimiter, async (req, res): Promise<v
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const {
+    turnstileToken: _t,
+    website: _w,
+    formMountedAt: _f,
+    ...estimateValues
+  } = parsed.data;
   const [row] = await db
     .insert(estimateRequestsTable)
-    .values(parsed.data)
+    .values(estimateValues)
     .returning({ id: estimateRequestsTable.id });
-  notifyEstimateRequest(row.id, parsed.data as Record<string, unknown>);
+  notifyEstimateRequest(row.id, estimateValues as Record<string, unknown>);
   res.status(201).json({ id: row.id, ok: true });
 });
 

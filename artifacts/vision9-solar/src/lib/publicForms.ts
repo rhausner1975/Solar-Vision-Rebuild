@@ -4,14 +4,8 @@ import type {
   SubmissionAck,
 } from "@workspace/api-client-react";
 
-interface AntiSpamFields {
-  turnstileToken: string | null;
-  website: string;
-  formMountedAt: number;
-}
-
-export type ContactSubmissionPayload = ContactSubmissionInput & AntiSpamFields;
-export type EstimateRequestPayload = EstimateRequestInput & AntiSpamFields;
+export type ContactSubmissionPayload = ContactSubmissionInput;
+export type EstimateRequestPayload = EstimateRequestInput;
 
 async function postJson<TResponse>(url: string, body: unknown): Promise<TResponse> {
   const response = await fetch(url, {

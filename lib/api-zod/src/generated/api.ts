@@ -27,12 +27,36 @@ export const createContactSubmissionBodySubjectMax = 300;
 
 export const createContactSubmissionBodyMessageMax = 5000;
 
+export const createContactSubmissionBodyTurnstileTokenMax = 4096;
+
+export const createContactSubmissionBodyWebsiteMax = 500;
+
 export const CreateContactSubmissionBody = zod.object({
   name: zod.string().min(1).max(createContactSubmissionBodyNameMax),
   email: zod.string().email().max(createContactSubmissionBodyEmailMax),
   phone: zod.string().max(createContactSubmissionBodyPhoneMax).nullish(),
   subject: zod.string().max(createContactSubmissionBodySubjectMax).nullish(),
   message: zod.string().min(1).max(createContactSubmissionBodyMessageMax),
+  turnstileToken: zod
+    .string()
+    .max(createContactSubmissionBodyTurnstileTokenMax)
+    .nullable()
+    .describe(
+      "Cloudflare Turnstile token from the client widget. Verified server-side.",
+    ),
+  website: zod
+    .string()
+    .max(createContactSubmissionBodyWebsiteMax)
+    .optional()
+    .describe(
+      "Honeypot field — must be empty. Bots that auto-fill all inputs are silently dropped.",
+    ),
+  formMountedAt: zod
+    .number()
+    .optional()
+    .describe(
+      "Client timestamp (ms) when the form was mounted. Used to enforce a minimum fill time.",
+    ),
 });
 
 /**
@@ -56,6 +80,10 @@ export const createEstimateRequestBodyTimelineMax = 100;
 
 export const createEstimateRequestBodyNotesMax = 5000;
 
+export const createEstimateRequestBodyTurnstileTokenMax = 4096;
+
+export const createEstimateRequestBodyWebsiteMax = 500;
+
 export const CreateEstimateRequestBody = zod.object({
   name: zod.string().min(1).max(createEstimateRequestBodyNameMax),
   email: zod.string().email().max(createEstimateRequestBodyEmailMax),
@@ -75,6 +103,26 @@ export const CreateEstimateRequestBody = zod.object({
     .nullish(),
   timeline: zod.string().max(createEstimateRequestBodyTimelineMax).nullish(),
   notes: zod.string().max(createEstimateRequestBodyNotesMax).nullish(),
+  turnstileToken: zod
+    .string()
+    .max(createEstimateRequestBodyTurnstileTokenMax)
+    .nullable()
+    .describe(
+      "Cloudflare Turnstile token from the client widget. Verified server-side.",
+    ),
+  website: zod
+    .string()
+    .max(createEstimateRequestBodyWebsiteMax)
+    .optional()
+    .describe(
+      "Honeypot field — must be empty. Bots that auto-fill all inputs are silently dropped.",
+    ),
+  formMountedAt: zod
+    .number()
+    .optional()
+    .describe(
+      "Client timestamp (ms) when the form was mounted. Used to enforce a minimum fill time.",
+    ),
 });
 
 /**

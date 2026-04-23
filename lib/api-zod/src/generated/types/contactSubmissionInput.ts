@@ -29,4 +29,17 @@ export interface ContactSubmissionInput {
    * @maxLength 5000
    */
   message: string;
+  /**
+   * Cloudflare Turnstile token from the client widget. Verified server-side.
+   * @maxLength 4096
+   * @nullable
+   */
+  turnstileToken: string | null;
+  /**
+   * Honeypot field — must be empty. Bots that auto-fill all inputs are silently dropped.
+   * @maxLength 500
+   */
+  website?: string;
+  /** Client timestamp (ms) when the form was mounted. Used to enforce a minimum fill time. */
+  formMountedAt?: number;
 }
