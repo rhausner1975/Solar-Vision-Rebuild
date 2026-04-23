@@ -13,6 +13,9 @@ import {
   Hourglass,
 } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeSanitize from "rehype-sanitize";
 import { useGetPublicGallery, getGetPublicGalleryQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -156,8 +159,13 @@ export default function GalleryView() {
               {gallery.story && (
                 <div className={specs.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}>
                   <h2 className="text-2xl font-bold text-foreground mb-4">The Story</h2>
-                  <div className="text-secondary text-base leading-relaxed whitespace-pre-wrap">
-                    {gallery.story}
+                  <div className="prose prose-neutral dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-secondary prose-strong:text-foreground prose-li:text-secondary prose-a:text-primary hover:prose-a:underline">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeSanitize]}
+                    >
+                      {gallery.story}
+                    </ReactMarkdown>
                   </div>
                 </div>
               )}
