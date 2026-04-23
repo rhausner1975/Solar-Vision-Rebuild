@@ -436,6 +436,18 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ApiError" }
 
+  /admin/spam-block-stats:
+    get:
+      operationId: getSpamBlockStats
+      tags: [admin]
+      summary: Counts of blocked spam form submissions for the admin dashboard
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SpamBlockStats" }
+
   /admin/storage/image-variants-status:
     get:
       operationId: getImageVariantsStatus
@@ -1134,6 +1146,17 @@ components:
             maxLength: 20
             pattern: "^\\+[1-9]\\d{1,14}$"
       required: [recipients, smsRecipients]
+
+    SpamBlockStats:
+      type: object
+      properties:
+        today: { type: integer }
+        week: { type: integer }
+        byReasonWeek:
+          type: object
+          additionalProperties: { type: integer }
+        retentionDays: { type: integer }
+      required: [today, week, byReasonWeek, retentionDays]
 
     ImageVariantsStatus:
       type: object

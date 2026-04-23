@@ -49,6 +49,7 @@ import type {
   RequestUploadUrlResponse,
   ResendNotificationInput,
   SendTestSmsInput,
+  SpamBlockStats,
   StartBackfillImageVariantsParams,
   SubmissionAck,
   TestInAppNotificationResult,
@@ -2105,6 +2106,81 @@ export const useReorderGalleryImages = <
 > => {
   return useMutation(getReorderGalleryImagesMutationOptions(options));
 };
+
+/**
+ * @summary Counts of blocked spam form submissions for the admin dashboard
+ */
+export const getGetSpamBlockStatsUrl = () => {
+  return `/api/admin/spam-block-stats`;
+};
+
+export const getSpamBlockStats = async (
+  options?: RequestInit,
+): Promise<SpamBlockStats> => {
+  return customFetch<SpamBlockStats>(getGetSpamBlockStatsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSpamBlockStatsQueryKey = () => {
+  return [`/api/admin/spam-block-stats`] as const;
+};
+
+export const getGetSpamBlockStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSpamBlockStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSpamBlockStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSpamBlockStatsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSpamBlockStats>>
+  > = ({ signal }) => getSpamBlockStats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSpamBlockStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSpamBlockStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSpamBlockStats>>
+>;
+export type GetSpamBlockStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Counts of blocked spam form submissions for the admin dashboard
+ */
+
+export function useGetSpamBlockStats<
+  TData = Awaited<ReturnType<typeof getSpamBlockStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSpamBlockStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSpamBlockStatsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Count gallery images that are missing WebP thumb/medium variants

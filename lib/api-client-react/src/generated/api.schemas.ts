@@ -554,6 +554,15 @@ export interface NotificationSettingsInput {
   smsRecipients: string[];
 }
 
+export type SpamBlockStatsByReasonWeek = { [key: string]: number };
+
+export interface SpamBlockStats {
+  today: number;
+  week: number;
+  byReasonWeek: SpamBlockStatsByReasonWeek;
+  retentionDays: number;
+}
+
 export interface ImageVariantsStatus {
   totalImages: number;
   missingThumb: number;

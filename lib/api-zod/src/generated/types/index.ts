@@ -47,6 +47,8 @@ export * from "./requestUploadUrlResponse";
 export * from "./resendNotificationInput";
 export * from "./resendNotificationInputChannelsItem";
 export * from "./sendTestSmsInput";
+export * from "./spamBlockStats";
+export * from "./spamBlockStatsByReasonWeek";
 export * from "./startBackfillImageVariantsForce";
 export * from "./startBackfillImageVariantsParams";
 export * from "./submissionAck";

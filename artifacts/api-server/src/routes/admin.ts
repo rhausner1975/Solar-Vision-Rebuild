@@ -79,6 +79,7 @@ import {
   type Channel,
 } from "../lib/notify";
 import { getInAppNotificationsCleanupStatus } from "../lib/inAppNotificationsCleanup";
+import { getSpamBlockStats } from "../lib/spamBlockLog";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -286,6 +287,11 @@ router.post("/admin/password", requireAdmin, async (req, res): Promise<void> => 
     await revokeOtherSessions(user.id, currentSessionId);
   }
   res.status(204).end();
+});
+
+router.get("/admin/spam-block-stats", requireAdmin, async (_req, res): Promise<void> => {
+  const stats = await getSpamBlockStats();
+  res.json(stats);
 });
 
 router.get("/admin/contact-submissions", requireAdmin, async (_req, res): Promise<void> => {

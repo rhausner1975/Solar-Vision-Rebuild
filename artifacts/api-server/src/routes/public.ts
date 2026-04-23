@@ -16,6 +16,7 @@ import { publicFormLimiter } from "../lib/rateLimit";
 import { notifyContactSubmission, notifyEstimateRequest } from "../lib/notify";
 import { verifyTurnstileToken } from "../lib/turnstile";
 import { logger } from "../lib/logger";
+import { recordSpamBlock, type SpamBlockReason } from "../lib/spamBlockLog";
 
 const router: IRouter = Router();
 
@@ -47,6 +48,7 @@ function checkHoneypotAndTiming(req: Request, formName: string): AntiSpamResult 
       { form: formName, ip: req.ip, honeypot: body.website },
       "Spam blocked: honeypot field filled",
     );
+    void recordSpamBlock({ formName, reason: "honeypot", ip: req.ip });
     return { silentDrop: true, rejectReason: "honeypot" };
   }
 
@@ -60,6 +62,7 @@ function checkHoneypotAndTiming(req: Request, formName: string): AntiSpamResult 
       { form: formName, ip: req.ip, formMountedAt: body.formMountedAt },
       "Spam blocked: missing or invalid formMountedAt",
     );
+    void recordSpamBlock({ formName, reason: "missing-timestamp", ip: req.ip });
     return { silentDrop: true, rejectReason: "missing-timestamp" };
   }
   const elapsed = Date.now() - body.formMountedAt;
@@ -68,10 +71,16 @@ function checkHoneypotAndTiming(req: Request, formName: string): AntiSpamResult 
       { form: formName, ip: req.ip, elapsedMs: elapsed },
       "Spam blocked: form submitted too quickly",
     );
+    void recordSpamBlock({ formName, reason: "too-fast", ip: req.ip });
     return { silentDrop: true, rejectReason: "too-fast" };
   }
 
   return { silentDrop: false };
+}
+
+function recordCaptchaFailure(req: Request, formName: string): void {
+  const reason: SpamBlockReason = "captcha-failed";
+  void recordSpamBlock({ formName, reason, ip: req.ip });
 }
 
 router.post("/contact-submissions", publicFormLimiter, async (req, res): Promise<void> => {
@@ -91,6 +100,7 @@ router.post("/contact-submissions", publicFormLimiter, async (req, res): Promise
       { form: "contact", ip: req.ip, reason: captcha.reason },
       "Spam blocked: captcha verification failed",
     );
+    recordCaptchaFailure(req, "contact");
     res.status(400).json({ error: "Captcha verification failed. Please try again." });
     return;
   }
@@ -131,6 +141,7 @@ router.post("/estimate-requests", publicFormLimiter, async (req, res): Promise<v
       { form: "estimate", ip: req.ip, reason: captcha.reason },
       "Spam blocked: captcha verification failed",
     );
+    recordCaptchaFailure(req, "estimate");
     res.status(400).json({ error: "Captcha verification failed. Please try again." });
     return;
   }

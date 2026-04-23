@@ -613,6 +613,16 @@ export const ReorderGalleryImagesResponse = zod.array(
 );
 
 /**
+ * @summary Counts of blocked spam form submissions for the admin dashboard
+ */
+export const GetSpamBlockStatsResponse = zod.object({
+  today: zod.number(),
+  week: zod.number(),
+  byReasonWeek: zod.record(zod.string(), zod.number()),
+  retentionDays: zod.number(),
+});
+
+/**
  * @summary Count gallery images that are missing WebP thumb/medium variants
  */
 export const GetImageVariantsStatusResponse = zod.object({

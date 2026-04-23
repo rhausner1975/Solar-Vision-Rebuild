@@ -10,6 +10,10 @@ import {
   pruneInAppNotifications,
   startInAppNotificationsCleanup,
 } from "./lib/inAppNotificationsCleanup";
+import {
+  pruneSpamBlockLog,
+  startSpamBlockLogCleanup,
+} from "./lib/spamBlockLog";
 
 const rawPort = process.env["PORT"];
 
@@ -31,6 +35,8 @@ if (Number.isNaN(port) || port <= 0) {
     startNotificationLogCleanup();
     await pruneInAppNotifications();
     startInAppNotificationsCleanup();
+    await pruneSpamBlockLog();
+    startSpamBlockLogCleanup();
   } catch (err) {
     logger.error({ err }, "Startup tasks failed");
   }

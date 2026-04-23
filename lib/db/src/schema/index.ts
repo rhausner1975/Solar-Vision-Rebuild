@@ -9,3 +9,4 @@ export * from "./notificationSettings";
 export * from "./notificationLog";
 export * from "./inAppNotifications";
 export * from "./webPushSubscriptions";
+export * from "./spamBlockLog";
