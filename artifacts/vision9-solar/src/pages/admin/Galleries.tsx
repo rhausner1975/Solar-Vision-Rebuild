@@ -63,10 +63,39 @@ export default function GalleriesAdmin() {
     },
   });
   const regenerateOne = useRegenerateImageVariants();
+  const [bulkRegenerating, setBulkRegenerating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
 
   const invalidateVariantQueries = () => {
     queryClient.invalidateQueries({ queryKey: getGetImageVariantsStatusQueryKey() });
     queryClient.invalidateQueries({ queryKey: getListImagesMissingVariantsQueryKey() });
+  };
+
+  const handleRegenerateAllListed = async () => {
+    const imgs = missingImages.data;
+    if (!imgs?.length) return;
+    setBulkRegenerating(true);
+    setBulkProgress({ done: 0, total: imgs.length });
+    let succeeded = 0;
+    let failed = 0;
+    let totalGenerated = 0;
+    for (const img of imgs) {
+      try {
+        const result = await regenerateOne.mutateAsync({ id: img.id });
+        succeeded += 1;
+        totalGenerated += result.generated.length;
+      } catch {
+        failed += 1;
+      }
+      setBulkProgress((p) => ({ done: p.done + 1, total: imgs.length }));
+    }
+    setBulkRegenerating(false);
+    invalidateVariantQueries();
+    toast({
+      title: failed === 0 ? "Regenerated all listed images" : "Regenerate finished with errors",
+      description: `Processed: ${succeeded + failed} of ${imgs.length} · Variants generated: ${totalGenerated} · Failed: ${failed}`,
+      variant: failed === 0 ? undefined : "destructive",
+    });
   };
 
   const handleRegenerateOne = (id: number) => {
@@ -196,10 +225,38 @@ export default function GalleriesAdmin() {
                       <DialogTitle>Images missing WebP variants</DialogTitle>
                       <DialogDescription>
                         These gallery images are missing one or more optimized
-                        variants. Regenerate individually or use Rebuild image
-                        variants to process all at once.
+                        variants. Regenerate individually, regenerate all listed
+                        below, or use Rebuild image variants to process every
+                        gallery image.
                       </DialogDescription>
                     </DialogHeader>
+                    {!!missingImages.data?.length && (
+                      <div className="flex items-center justify-between gap-2 pb-2">
+                        <div
+                          className="text-sm text-muted-foreground"
+                          data-testid="text-bulk-regenerate-progress"
+                        >
+                          {bulkRegenerating
+                            ? `Regenerating ${bulkProgress.done} of ${bulkProgress.total}…`
+                            : `${missingImages.data.length} image${missingImages.data.length === 1 ? "" : "s"} affected`}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRegenerateAllListed}
+                          disabled={bulkRegenerating || regenerateOne.isPending}
+                          data-testid="button-regenerate-all-listed"
+                          title="Regenerate variants for every image currently shown in this list."
+                        >
+                          {bulkRegenerating ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                          )}
+                          Regenerate all listed
+                        </Button>
+                      </div>
+                    )}
                     <div className="max-h-[60vh] overflow-y-auto">
                       {missingImages.isLoading ? (
                         <div className="p-6 text-center text-muted-foreground">
@@ -269,8 +326,9 @@ export default function GalleriesAdmin() {
                                       size="sm"
                                       onClick={() => handleRegenerateOne(img.id)}
                                       disabled={
-                                        regenerateOne.isPending &&
-                                        regenerateOne.variables?.id === img.id
+                                        bulkRegenerating ||
+                                        (regenerateOne.isPending &&
+                                          regenerateOne.variables?.id === img.id)
                                       }
                                       data-testid={`button-regenerate-image-${img.id}`}
                                     >
