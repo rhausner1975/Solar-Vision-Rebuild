@@ -5,11 +5,11 @@
  * Vision9 Solar API — public forms, admin auth, gallery CMS, object uploads.
  * OpenAPI spec version: 0.1.0
  */
-import type { BackfillImageVariantsForce } from "./backfillImageVariantsForce";
+import type { StartBackfillImageVariantsForce } from "./startBackfillImageVariantsForce";
 
-export type BackfillImageVariantsParams = {
+export type StartBackfillImageVariantsParams = {
   /**
    * When set, regenerate variants even if they already exist.
    */
-  force?: BackfillImageVariantsForce;
+  force?: StartBackfillImageVariantsForce;
 };

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import { Plus, Edit2, Trash2, RefreshCw, Loader2 } from "lucide-react";
@@ -6,7 +6,9 @@ import {
   useListGalleries,
   useCreateGallery,
   useDeleteGallery,
-  useBackfillImageVariants,
+  useStartBackfillImageVariants,
+  useGetBackfillImageVariantsJob,
+  getGetBackfillImageVariantsJobQueryKey,
   useGetImageVariantsStatus,
   useListImagesMissingVariants,
   useRegenerateImageVariants,
@@ -22,6 +24,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -50,7 +53,7 @@ export default function GalleriesAdmin() {
   const { data: galleries, isLoading } = useListGalleries();
   const createGallery = useCreateGallery();
   const deleteGallery = useDeleteGallery();
-  const backfillVariants = useBackfillImageVariants();
+  const startBackfill = useStartBackfillImageVariants();
   const variantsStatus = useGetImageVariantsStatus();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -65,6 +68,8 @@ export default function GalleriesAdmin() {
   const regenerateOne = useRegenerateImageVariants();
   const [bulkRegenerating, setBulkRegenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [activeJobForce, setActiveJobForce] = useState(false);
 
   const invalidateVariantQueries = () => {
     queryClient.invalidateQueries({ queryKey: getGetImageVariantsStatusQueryKey() });
@@ -123,27 +128,65 @@ export default function GalleriesAdmin() {
     );
   };
 
+  const jobQuery = useGetBackfillImageVariantsJob(activeJobId ?? "", {
+    query: {
+      queryKey: getGetBackfillImageVariantsJobQueryKey(activeJobId ?? ""),
+      enabled: !!activeJobId,
+      refetchInterval: (query) => {
+        const data = query.state.data;
+        if (!data) return 1000;
+        return data.state === "completed" || data.state === "failed"
+          ? false
+          : 1000;
+      },
+    },
+  });
+
+  const job = jobQuery.data;
+  const isJobRunning =
+    !!activeJobId && (!job || job.state === "pending" || job.state === "running");
+
+  useEffect(() => {
+    if (!job || !activeJobId) return;
+    if (job.state === "completed") {
+      toast({
+        title: activeJobForce ? "Force regenerate complete" : "Backfill complete",
+        description: `Total: ${job.total} · Processed: ${job.processed} · Variants generated: ${job.generated} · Failed: ${job.failed}`,
+      });
+      invalidateVariantQueries();
+      setActiveJobId(null);
+    } else if (job.state === "failed") {
+      toast({
+        title: "Backfill failed",
+        description: job.error ?? "Could not rebuild image variants. Check server logs.",
+        variant: "destructive",
+      });
+      setActiveJobId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job, activeJobId, activeJobForce, toast]);
+
   const runBackfill = (force: boolean) => {
-    backfillVariants.mutate(
+    setActiveJobForce(force);
+    startBackfill.mutate(
       { params: force ? { force: "1" } : undefined },
       {
         onSuccess: (result) => {
-          toast({
-            title: force ? "Force regenerate complete" : "Backfill complete",
-            description: `Total: ${result.total} · Processed: ${result.processed} · Variants generated: ${result.generated} · Failed: ${result.failed}`,
-          });
-          invalidateVariantQueries();
+          setActiveJobId(result.jobId);
         },
         onError: () => {
           toast({
-            title: "Backfill failed",
-            description: "Could not rebuild image variants. Check server logs.",
+            title: "Backfill failed to start",
+            description: "Could not kick off the rebuild. Check server logs.",
             variant: "destructive",
           });
         },
       },
     );
   };
+
+  const progressPct =
+    job && job.total > 0 ? Math.round((job.processed / job.total) * 100) : 0;
 
   const handleCreate = () => {
     const slug = `gallery-${Date.now()}`;
@@ -357,11 +400,11 @@ export default function GalleriesAdmin() {
             <Button
               variant="outline"
               onClick={() => runBackfill(false)}
-              disabled={backfillVariants.isPending}
+              disabled={isJobRunning || startBackfill.isPending}
               data-testid="button-rebuild-image-variants"
               title="Generate any missing WebP thumb/medium variants for all gallery images."
             >
-              {backfillVariants.isPending && !forceConfirmOpen ? (
+              {isJobRunning || startBackfill.isPending ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <RefreshCw className="h-4 w-4 mr-2" />
@@ -372,7 +415,7 @@ export default function GalleriesAdmin() {
               <AlertDialogTrigger asChild>
                 <Button
                   variant="outline"
-                  disabled={backfillVariants.isPending}
+                  disabled={isJobRunning || startBackfill.isPending}
                   data-testid="button-force-rebuild-image-variants"
                   title="Regenerate every variant from the original, even if one already exists."
                 >
@@ -404,6 +447,29 @@ export default function GalleriesAdmin() {
             </Button>
           </div>
         </div>
+
+        {isJobRunning && (
+          <div
+            className="rounded-lg border border-border bg-background p-4 shadow-sm"
+            data-testid="backfill-progress"
+          >
+            <div className="flex items-center justify-between text-sm font-medium text-foreground">
+              <span>
+                {activeJobForce
+                  ? "Force regenerating image variants…"
+                  : "Rebuilding image variants…"}
+              </span>
+              <span className="text-secondary">
+                {job ? `${job.processed} / ${job.total}` : "Starting…"}
+                {job && job.failed > 0 ? ` · ${job.failed} failed` : ""}
+              </span>
+            </div>
+            <Progress
+              value={job && job.total > 0 ? progressPct : 0}
+              className="mt-2"
+            />
+          </div>
+        )}
 
         <div className="bg-background rounded-lg border border-border shadow-sm overflow-hidden">
           {isLoading ? (

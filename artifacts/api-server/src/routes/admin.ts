@@ -56,6 +56,11 @@ import {
 import { sendMail, getAdminNotificationEmail } from "../lib/mailer";
 import { ObjectStorageService } from "../lib/objectStorage";
 import {
+  createBackfillJob,
+  getBackfillJob,
+  updateBackfillJob,
+} from "../lib/backfillJobs";
+import {
   resendContactNotification,
   resendEstimateNotification,
   sendTestNotificationEmail,
@@ -580,26 +585,87 @@ router.post(
   },
 );
 
-// Admin-only: backfill thumb/medium WebP variants for every gallery image.
+// Admin-only: kick off a background job to backfill thumb/medium WebP variants
+// for every gallery image. Returns immediately with a job id; clients poll
+// GET /admin/storage/backfill-image-variants/jobs/:id for progress.
 // Idempotent — already-present variants are skipped unless ?force=1 is set.
 router.post("/admin/storage/backfill-image-variants", requireAdmin, async (req, res): Promise<void> => {
   const force = req.query.force === "1" || req.query.force === "true";
-  const rows = await db.select().from(galleryImagesTable);
-  let processed = 0;
-  let generated = 0;
-  let failed = 0;
-  for (const row of rows) {
+  const job = createBackfillJob(force);
+  const log = req.log;
+
+  // Run the rebuild detached from the request lifecycle. We intentionally do
+  // not await — the response is returned immediately.
+  void (async () => {
     try {
-      const v = await objectStorageService.generateImageVariants(row.objectPath, { force });
-      generated += v.length;
-      processed += 1;
+      const rows = await db.select().from(galleryImagesTable);
+      updateBackfillJob(job.id, { state: "running", total: rows.length });
+      for (const row of rows) {
+        try {
+          const v = await objectStorageService.generateImageVariants(row.objectPath, { force });
+          const current = getBackfillJob(job.id);
+          if (!current) return;
+          updateBackfillJob(job.id, {
+            processed: current.processed + 1,
+            generated: current.generated + v.length,
+          });
+        } catch (err) {
+          const current = getBackfillJob(job.id);
+          if (!current) return;
+          updateBackfillJob(job.id, {
+            processed: current.processed + 1,
+            failed: current.failed + 1,
+          });
+          log.error({ err, objectPath: row.objectPath }, "Backfill failed for image");
+        }
+      }
+      updateBackfillJob(job.id, {
+        state: "completed",
+        finishedAt: new Date().toISOString(),
+      });
     } catch (err) {
-      failed += 1;
-      req.log.error({ err, objectPath: row.objectPath }, "Backfill failed for image");
+      log.error({ err, jobId: job.id }, "Backfill job crashed");
+      updateBackfillJob(job.id, {
+        state: "failed",
+        finishedAt: new Date().toISOString(),
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
-  }
-  res.json({ total: rows.length, processed, generated, failed });
+  })();
+
+  res.status(202).json({
+    jobId: job.id,
+    state: job.state,
+    total: job.total,
+    processed: job.processed,
+    generated: job.generated,
+    failed: job.failed,
+  });
 });
+
+router.get(
+  "/admin/storage/backfill-image-variants/jobs/:id",
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const id = String(req.params.id ?? "");
+    const job = getBackfillJob(id);
+    if (!job) {
+      res.status(404).json({ error: "Job not found" });
+      return;
+    }
+    res.json({
+      jobId: job.id,
+      state: job.state,
+      total: job.total,
+      processed: job.processed,
+      generated: job.generated,
+      failed: job.failed,
+      startedAt: job.startedAt,
+      finishedAt: job.finishedAt,
+      error: job.error,
+    });
+  },
+);
 
 router.patch("/admin/gallery-images/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = UpdateGalleryImageParams.safeParse(req.params);

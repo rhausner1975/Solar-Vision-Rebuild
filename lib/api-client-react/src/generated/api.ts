@@ -19,8 +19,7 @@ import type {
 import type {
   AdminUser,
   ApiError,
-  BackfillImageVariantsParams,
-  BackfillImageVariantsResult,
+  BackfillImageVariantsJob,
   ChangePasswordInput,
   ConfirmPasswordResetInput,
   ContactSubmission,
@@ -47,6 +46,7 @@ import type {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
   ResendNotificationInput,
+  StartBackfillImageVariantsParams,
   SubmissionAck,
   TestInAppNotificationResult,
   TestNotificationResult,
@@ -2270,10 +2270,10 @@ export const useRegenerateImageVariants = <
 };
 
 /**
- * @summary Regenerate WebP thumb/medium variants for every gallery image
+ * @summary Kick off a background job to regenerate WebP thumb/medium variants
  */
-export const getBackfillImageVariantsUrl = (
-  params?: BackfillImageVariantsParams,
+export const getStartBackfillImageVariantsUrl = (
+  params?: StartBackfillImageVariantsParams,
 ) => {
   const normalizedParams = new URLSearchParams();
 
@@ -2290,12 +2290,12 @@ export const getBackfillImageVariantsUrl = (
     : `/api/admin/storage/backfill-image-variants`;
 };
 
-export const backfillImageVariants = async (
-  params?: BackfillImageVariantsParams,
+export const startBackfillImageVariants = async (
+  params?: StartBackfillImageVariantsParams,
   options?: RequestInit,
-): Promise<BackfillImageVariantsResult> => {
-  return customFetch<BackfillImageVariantsResult>(
-    getBackfillImageVariantsUrl(params),
+): Promise<BackfillImageVariantsJob> => {
+  return customFetch<BackfillImageVariantsJob>(
+    getStartBackfillImageVariantsUrl(params),
     {
       ...options,
       method: "POST",
@@ -2303,24 +2303,24 @@ export const backfillImageVariants = async (
   );
 };
 
-export const getBackfillImageVariantsMutationOptions = <
+export const getStartBackfillImageVariantsMutationOptions = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof backfillImageVariants>>,
+    Awaited<ReturnType<typeof startBackfillImageVariants>>,
     TError,
-    { params?: BackfillImageVariantsParams },
+    { params?: StartBackfillImageVariantsParams },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof backfillImageVariants>>,
+  Awaited<ReturnType<typeof startBackfillImageVariants>>,
   TError,
-  { params?: BackfillImageVariantsParams },
+  { params?: StartBackfillImageVariantsParams },
   TContext
 > => {
-  const mutationKey = ["backfillImageVariants"];
+  const mutationKey = ["startBackfillImageVariants"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -2330,45 +2330,137 @@ export const getBackfillImageVariantsMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof backfillImageVariants>>,
-    { params?: BackfillImageVariantsParams }
+    Awaited<ReturnType<typeof startBackfillImageVariants>>,
+    { params?: StartBackfillImageVariantsParams }
   > = (props) => {
     const { params } = props ?? {};
 
-    return backfillImageVariants(params, requestOptions);
+    return startBackfillImageVariants(params, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type BackfillImageVariantsMutationResult = NonNullable<
-  Awaited<ReturnType<typeof backfillImageVariants>>
+export type StartBackfillImageVariantsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startBackfillImageVariants>>
 >;
 
-export type BackfillImageVariantsMutationError = ErrorType<unknown>;
+export type StartBackfillImageVariantsMutationError = ErrorType<unknown>;
 
 /**
- * @summary Regenerate WebP thumb/medium variants for every gallery image
+ * @summary Kick off a background job to regenerate WebP thumb/medium variants
  */
-export const useBackfillImageVariants = <
+export const useStartBackfillImageVariants = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof backfillImageVariants>>,
+    Awaited<ReturnType<typeof startBackfillImageVariants>>,
     TError,
-    { params?: BackfillImageVariantsParams },
+    { params?: StartBackfillImageVariantsParams },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  Awaited<ReturnType<typeof backfillImageVariants>>,
+  Awaited<ReturnType<typeof startBackfillImageVariants>>,
   TError,
-  { params?: BackfillImageVariantsParams },
+  { params?: StartBackfillImageVariantsParams },
   TContext
 > => {
-  return useMutation(getBackfillImageVariantsMutationOptions(options));
+  return useMutation(getStartBackfillImageVariantsMutationOptions(options));
 };
+
+/**
+ * @summary Get progress for a backfill image variants job
+ */
+export const getGetBackfillImageVariantsJobUrl = (id: string) => {
+  return `/api/admin/storage/backfill-image-variants/jobs/${id}`;
+};
+
+export const getBackfillImageVariantsJob = async (
+  id: string,
+  options?: RequestInit,
+): Promise<BackfillImageVariantsJob> => {
+  return customFetch<BackfillImageVariantsJob>(
+    getGetBackfillImageVariantsJobUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetBackfillImageVariantsJobQueryKey = (id: string) => {
+  return [`/api/admin/storage/backfill-image-variants/jobs/${id}`] as const;
+};
+
+export const getGetBackfillImageVariantsJobQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBackfillImageVariantsJob>>,
+  TError = ErrorType<ApiError>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBackfillImageVariantsJob>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetBackfillImageVariantsJobQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getBackfillImageVariantsJob>>
+  > = ({ signal }) =>
+    getBackfillImageVariantsJob(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBackfillImageVariantsJob>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBackfillImageVariantsJobQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBackfillImageVariantsJob>>
+>;
+export type GetBackfillImageVariantsJobQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get progress for a backfill image variants job
+ */
+
+export function useGetBackfillImageVariantsJob<
+  TData = Awaited<ReturnType<typeof getBackfillImageVariantsJob>>,
+  TError = ErrorType<ApiError>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBackfillImageVariantsJob>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBackfillImageVariantsJobQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get notification recipient list

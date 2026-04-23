@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type BackfillImageVariantsForce =
-  (typeof BackfillImageVariantsForce)[keyof typeof BackfillImageVariantsForce];
+export type StartBackfillImageVariantsForce =
+  (typeof StartBackfillImageVariantsForce)[keyof typeof StartBackfillImageVariantsForce];
 
-export const BackfillImageVariantsForce = {
+export const StartBackfillImageVariantsForce = {
   NUMBER_1: "1",
   true: "true",
 } as const;

@@ -5,10 +5,16 @@
  * Vision9 Solar API — public forms, admin auth, gallery CMS, object uploads.
  * OpenAPI spec version: 0.1.0
  */
+import type { BackfillImageVariantsJobState } from "./backfillImageVariantsJobState";
 
-export interface BackfillImageVariantsResult {
+export interface BackfillImageVariantsJob {
+  jobId: string;
+  state: BackfillImageVariantsJobState;
   total: number;
   processed: number;
   generated: number;
   failed: number;
+  startedAt?: Date;
+  finishedAt?: Date | null;
+  error?: string | null;
 }

@@ -8,9 +8,8 @@
 
 export * from "./adminUser";
 export * from "./apiError";
-export * from "./backfillImageVariantsForce";
-export * from "./backfillImageVariantsParams";
-export * from "./backfillImageVariantsResult";
+export * from "./backfillImageVariantsJob";
+export * from "./backfillImageVariantsJobState";
 export * from "./changePasswordInput";
 export * from "./confirmPasswordResetInput";
 export * from "./contactSubmission";
@@ -45,6 +44,8 @@ export * from "./requestUploadUrlBody";
 export * from "./requestUploadUrlResponse";
 export * from "./resendNotificationInput";
 export * from "./resendNotificationInputChannelsItem";
+export * from "./startBackfillImageVariantsForce";
+export * from "./startBackfillImageVariantsParams";
 export * from "./submissionAck";
 export * from "./testInAppNotificationResult";
 export * from "./testNotificationResult";

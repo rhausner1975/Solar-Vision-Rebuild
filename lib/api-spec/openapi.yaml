@@ -456,9 +456,9 @@ paths:
 
   /admin/storage/backfill-image-variants:
     post:
-      operationId: backfillImageVariants
+      operationId: startBackfillImageVariants
       tags: [storage, admin]
-      summary: Regenerate WebP thumb/medium variants for every gallery image
+      summary: Kick off a background job to regenerate WebP thumb/medium variants
       parameters:
         - in: query
           name: force
@@ -466,11 +466,33 @@ paths:
           schema: { type: string, enum: ["1", "true"] }
           description: When set, regenerate variants even if they already exist.
       responses:
+        "202":
+          description: Job accepted; poll the job status endpoint for progress.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BackfillImageVariantsJob" }
+
+  /admin/storage/backfill-image-variants/jobs/{id}:
+    get:
+      operationId: getBackfillImageVariantsJob
+      tags: [storage, admin]
+      summary: Get progress for a backfill image variants job
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
         "200":
           description: OK
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/BackfillImageVariantsResult" }
+              schema: { $ref: "#/components/schemas/BackfillImageVariantsJob" }
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
 
   /admin/notification-settings:
     get:
@@ -892,14 +914,26 @@ components:
           items: { type: string, enum: [thumb, medium] }
       required: [id, objectPath, generated]
 
-    BackfillImageVariantsResult:
+    BackfillImageVariantsJob:
       type: object
       properties:
+        jobId: { type: string }
+        state:
+          type: string
+          enum: [pending, running, completed, failed]
         total: { type: integer }
         processed: { type: integer }
         generated: { type: integer }
         failed: { type: integer }
-      required: [total, processed, generated, failed]
+        startedAt: { type: string, format: date-time }
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        error:
+          type: string
+          nullable: true
+      required: [jobId, state, total, processed, generated, failed]
 
     NotificationLogEntry:
       type: object

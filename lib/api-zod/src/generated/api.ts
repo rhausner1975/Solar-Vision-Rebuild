@@ -559,20 +559,32 @@ export const RegenerateImageVariantsResponse = zod.object({
 });
 
 /**
- * @summary Regenerate WebP thumb/medium variants for every gallery image
+ * @summary Kick off a background job to regenerate WebP thumb/medium variants
  */
-export const BackfillImageVariantsQueryParams = zod.object({
+export const StartBackfillImageVariantsQueryParams = zod.object({
   force: zod
     .enum(["1", "true"])
     .optional()
     .describe("When set, regenerate variants even if they already exist."),
 });
 
-export const BackfillImageVariantsResponse = zod.object({
+/**
+ * @summary Get progress for a backfill image variants job
+ */
+export const GetBackfillImageVariantsJobParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetBackfillImageVariantsJobResponse = zod.object({
+  jobId: zod.string(),
+  state: zod.enum(["pending", "running", "completed", "failed"]),
   total: zod.number(),
   processed: zod.number(),
   generated: zod.number(),
   failed: zod.number(),
+  startedAt: zod.coerce.date().optional(),
+  finishedAt: zod.coerce.date().nullish(),
+  error: zod.string().nullish(),
 });
 
 /**

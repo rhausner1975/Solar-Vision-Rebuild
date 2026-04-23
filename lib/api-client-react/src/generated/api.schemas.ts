@@ -466,11 +466,26 @@ export interface RegenerateImageVariantsResult {
   generated: RegenerateImageVariantsResultGeneratedItem[];
 }
 
-export interface BackfillImageVariantsResult {
+export type BackfillImageVariantsJobState =
+  (typeof BackfillImageVariantsJobState)[keyof typeof BackfillImageVariantsJobState];
+
+export const BackfillImageVariantsJobState = {
+  pending: "pending",
+  running: "running",
+  completed: "completed",
+  failed: "failed",
+} as const;
+
+export interface BackfillImageVariantsJob {
+  jobId: string;
+  state: BackfillImageVariantsJobState;
   total: number;
   processed: number;
   generated: number;
   failed: number;
+  startedAt?: string;
+  finishedAt?: string | null;
+  error?: string | null;
 }
 
 export type NotificationLogEntryChannel =
@@ -528,17 +543,17 @@ export const RegenerateImageVariantsForce = {
   true: "true",
 } as const;
 
-export type BackfillImageVariantsParams = {
+export type StartBackfillImageVariantsParams = {
   /**
    * When set, regenerate variants even if they already exist.
    */
-  force?: BackfillImageVariantsForce;
+  force?: StartBackfillImageVariantsForce;
 };
 
-export type BackfillImageVariantsForce =
-  (typeof BackfillImageVariantsForce)[keyof typeof BackfillImageVariantsForce];
+export type StartBackfillImageVariantsForce =
+  (typeof StartBackfillImageVariantsForce)[keyof typeof StartBackfillImageVariantsForce];
 
-export const BackfillImageVariantsForce = {
+export const StartBackfillImageVariantsForce = {
   NUMBER_1: "1",
   true: "true",
 } as const;
