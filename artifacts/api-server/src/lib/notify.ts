@@ -48,8 +48,15 @@ async function getRecipients(): Promise<string[]> {
   return [FALLBACK_TO];
 }
 
-async function sendEmail(subject: string, body: string): Promise<void> {
-  const recipients = await getRecipients();
+async function sendEmail(
+  subject: string,
+  body: string,
+  overrideRecipients?: string[],
+): Promise<void> {
+  const recipients =
+    overrideRecipients && overrideRecipients.length > 0
+      ? overrideRecipients
+      : await getRecipients();
   const toHeader = recipients.join(", ");
   const raw = base64UrlEncode(buildRfc822(toHeader, subject, body));
   const response = await connectors.proxy(
@@ -64,6 +71,33 @@ async function sendEmail(subject: string, body: string): Promise<void> {
   if (!response.ok) {
     const text = await response.text().catch(() => "");
     throw new Error(`Gmail send failed: ${response.status} ${text}`);
+  }
+}
+
+export async function sendTestNotificationEmail(): Promise<{
+  delivered: boolean;
+  recipients: string[];
+  error?: string;
+}> {
+  const recipients = await getRecipients();
+  const subject = "[TEST] Vision9 Solar notification test";
+  const body = [
+    "This is a test notification from the Vision9 Solar admin panel.",
+    "",
+    "If you received this email, your notification recipient list is configured correctly",
+    "and you will be alerted when new contact submissions or estimate requests come in.",
+    "",
+    `Recipients on this test: ${recipients.join(", ")}`,
+    `Sent at: ${new Date().toISOString()}`,
+  ].join("\n");
+  try {
+    await sendEmail(subject, body, recipients);
+    logger.info({ recipients }, "Sent test notification email");
+    return { delivered: true, recipients };
+  } catch (err) {
+    logger.error({ err, recipients }, "Failed to send test notification email");
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { delivered: false, recipients, error: message };
   }
 }
 

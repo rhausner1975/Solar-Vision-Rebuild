@@ -8,8 +8,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetNotificationSettings,
   useUpdateNotificationSettings,
+  useSendTestNotification,
   getGetNotificationSettingsQueryKey,
 } from "@workspace/api-client-react";
+import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -38,9 +40,37 @@ type FormValues = z.infer<typeof formSchema>;
 export default function NotificationSettings() {
   const { data, isLoading } = useGetNotificationSettings();
   const update = useUpdateNotificationSettings();
+  const sendTest = useSendTestNotification();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [hydrated, setHydrated] = useState(false);
+
+  function handleSendTest() {
+    sendTest.mutate(undefined, {
+      onSuccess: (result) => {
+        if (result.delivered) {
+          toast({
+            title: "Test email sent",
+            description: `Sent to ${result.recipients.join(", ")}. Check the inbox to confirm delivery.`,
+          });
+        } else {
+          toast({
+            title: "Test email failed",
+            description:
+              result.error ?? "The server tried to send the test but it was rejected.",
+            variant: "destructive",
+          });
+        }
+      },
+      onError: () => {
+        toast({
+          title: "Could not send test email",
+          description: "The request failed before the email could be sent.",
+          variant: "destructive",
+        });
+      },
+    });
+  }
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -146,10 +176,21 @@ export default function NotificationSettings() {
                   <Button type="submit" disabled={update.isPending}>
                     {update.isPending ? "Saving..." : "Save changes"}
                   </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleSendTest}
+                    disabled={sendTest.isPending}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {sendTest.isPending ? "Sending..." : "Send test email"}
+                  </Button>
                 </div>
 
                 <p className="text-xs text-secondary pt-2">
                   If no recipients are configured, notifications fall back to the default address.
+                  The test email uses the saved recipients on the server, so save your changes first
+                  if you've just edited the list.
                 </p>
               </form>
             </Form>

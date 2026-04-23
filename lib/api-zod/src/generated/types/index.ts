@@ -28,3 +28,4 @@ export * from "./requestPasswordResetInput";
 export * from "./requestUploadUrlBody";
 export * from "./requestUploadUrlResponse";
 export * from "./submissionAck";
+export * from "./testNotificationResult";

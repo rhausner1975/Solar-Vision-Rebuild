@@ -475,6 +475,15 @@ export const UpdateNotificationSettingsResponse = zod.object({
 });
 
 /**
+ * @summary Send a test notification email to the saved recipients
+ */
+export const SendTestNotificationResponse = zod.object({
+  delivered: zod.boolean(),
+  recipients: zod.array(zod.string().email()),
+  error: zod.string().nullish(),
+});
+
+/**
  * @summary Get a presigned upload URL
  */
 export const RequestUploadUrlBody = zod.object({

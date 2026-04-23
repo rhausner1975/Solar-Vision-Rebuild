@@ -382,6 +382,18 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ApiError" }
 
+  /admin/notification-settings/test:
+    post:
+      operationId: sendTestNotification
+      tags: [admin]
+      summary: Send a test notification email to the saved recipients
+      responses:
+        "200":
+          description: Result of the test send (200 indicates the request was processed; check `delivered`)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestNotificationResult" }
+
   /storage/uploads/request-url:
     post:
       operationId: requestUploadUrl
@@ -583,6 +595,15 @@ components:
           items: { type: string, format: email }
         updatedAt: { type: string, format: date-time }
       required: [recipients, updatedAt]
+    TestNotificationResult:
+      type: object
+      properties:
+        delivered: { type: boolean }
+        recipients:
+          type: array
+          items: { type: string, format: email }
+        error: { type: ["string", "null"] }
+      required: [delivered, recipients]
     NotificationSettingsInput:
       type: object
       properties:

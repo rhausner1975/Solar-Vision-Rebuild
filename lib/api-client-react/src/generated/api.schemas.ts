@@ -328,6 +328,13 @@ export interface NotificationSettings {
   updatedAt: string;
 }
 
+export interface TestNotificationResult {
+  delivered: boolean;
+  recipients: string[];
+  /** @nullable */
+  error?: string | null;
+}
+
 export interface NotificationSettingsInput {
   /**
    * @minItems 1

@@ -48,6 +48,7 @@ import {
 } from "../lib/rateLimit";
 import { sendMail, getAdminNotificationEmail } from "../lib/mailer";
 import { ObjectStorageService } from "../lib/objectStorage";
+import { sendTestNotificationEmail } from "../lib/notify";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -475,5 +476,14 @@ router.put("/admin/notification-settings", requireAdmin, async (req, res): Promi
   }
   res.json({ recipients: row!.recipients, updatedAt: row!.updatedAt });
 });
+
+router.post(
+  "/admin/notification-settings/test",
+  requireAdmin,
+  async (_req, res): Promise<void> => {
+    const result = await sendTestNotificationEmail();
+    res.json(result);
+  },
+);
 
 export default router;
