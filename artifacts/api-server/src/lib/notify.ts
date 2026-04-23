@@ -108,6 +108,40 @@ function dispatchSms(message: string, context: string): void {
   });
 }
 
+const DEFAULT_DEDUP_WINDOW_MS = 5 * 60 * 1000;
+const NOTIFY_DEDUP_WINDOW_MS = (() => {
+  const raw = process.env["NOTIFY_DEDUP_WINDOW_MS"];
+  if (!raw) return DEFAULT_DEDUP_WINDOW_MS;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_DEDUP_WINDOW_MS;
+})();
+
+const recentNotifications = new Map<string, number>();
+
+function normalize(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value.trim().toLowerCase();
+}
+
+function dedupKey(kind: string, email: unknown, phone: unknown): string | null {
+  const e = normalize(email);
+  const p = normalize(phone).replace(/[^\d+]/g, "");
+  if (!e && !p) return null;
+  return `${kind}|${e}|${p}`;
+}
+
+function shouldSkipDuplicate(key: string | null): boolean {
+  if (!key || NOTIFY_DEDUP_WINDOW_MS <= 0) return false;
+  const now = Date.now();
+  for (const [k, ts] of recentNotifications) {
+    if (now - ts > NOTIFY_DEDUP_WINDOW_MS) recentNotifications.delete(k);
+  }
+  const last = recentNotifications.get(key);
+  if (last !== undefined && now - last <= NOTIFY_DEDUP_WINDOW_MS) return true;
+  recentNotifications.set(key, now);
+  return false;
+}
+
 function fmtField(label: string, value: unknown): string {
   if (value === null || value === undefined || value === "") return `${label}: -`;
   return `${label}: ${String(value)}`;
@@ -121,6 +155,14 @@ export interface ContactSubmissionPayload {
 }
 
 export function notifyContactSubmission(data: ContactSubmissionPayload): void {
+  const key = dedupKey("contact", data.email, data.phone);
+  if (shouldSkipDuplicate(key)) {
+    logger.info(
+      { context: "contact-submission", email: data.email, phone: data.phone },
+      "Duplicate lead notification suppressed within de-dup window",
+    );
+    return;
+  }
   const subject = `New contact submission from ${data.name}`;
   const body = [
     "A new contact form submission was received on vision9.biz.",
@@ -147,6 +189,14 @@ export function notifyContactSubmission(data: ContactSubmissionPayload): void {
 
 export function notifyEstimateRequest(data: Record<string, unknown>): void {
   const name = typeof data["name"] === "string" ? (data["name"] as string) : "(unknown)";
+  const dedup = dedupKey("estimate", data["email"], data["phone"]);
+  if (shouldSkipDuplicate(dedup)) {
+    logger.info(
+      { context: "estimate-request", email: data["email"], phone: data["phone"] },
+      "Duplicate lead notification suppressed within de-dup window",
+    );
+    return;
+  }
   const subject = `New estimate request from ${name}`;
   const lines = ["A new estimate request was received on vision9.biz.", ""];
   for (const [key, value] of Object.entries(data)) {
