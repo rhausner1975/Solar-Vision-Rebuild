@@ -532,6 +532,39 @@ export const DeleteGalleryImageParams = zod.object({
 });
 
 /**
+ * @summary Reorder all images in a gallery in one request
+ */
+export const ReorderGalleryImagesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const reorderGalleryImagesBodyImageIdsMin = 0;
+export const reorderGalleryImagesBodyImageIdsMax = 10000;
+
+export const ReorderGalleryImagesBody = zod
+  .object({
+    imageIds: zod
+      .array(zod.number())
+      .min(reorderGalleryImagesBodyImageIdsMin)
+      .max(reorderGalleryImagesBodyImageIdsMax),
+  })
+  .describe(
+    "Full list of image ids in the gallery in the desired new order. Must include every image in the gallery exactly once.",
+  );
+
+export const ReorderGalleryImagesResponseItem = zod.object({
+  id: zod.number(),
+  galleryId: zod.number(),
+  objectPath: zod.string(),
+  caption: zod.string().nullish(),
+  altText: zod.string().nullish(),
+  sortOrder: zod.number(),
+});
+export const ReorderGalleryImagesResponse = zod.array(
+  ReorderGalleryImagesResponseItem,
+);
+
+/**
  * @summary Count gallery images that are missing WebP thumb/medium variants
  */
 export const GetImageVariantsStatusResponse = zod.object({

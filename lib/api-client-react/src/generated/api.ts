@@ -43,6 +43,7 @@ import type {
   NotificationSettingsInput,
   RegenerateImageVariantsParams,
   RegenerateImageVariantsResult,
+  ReorderGalleryImagesInput,
   RequestPasswordResetInput,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
@@ -2015,6 +2016,94 @@ export const useDeleteGalleryImage = <
   TContext
 > => {
   return useMutation(getDeleteGalleryImageMutationOptions(options));
+};
+
+/**
+ * @summary Reorder all images in a gallery in one request
+ */
+export const getReorderGalleryImagesUrl = (id: number) => {
+  return `/api/admin/galleries/${id}/reorder`;
+};
+
+export const reorderGalleryImages = async (
+  id: number,
+  reorderGalleryImagesInput: ReorderGalleryImagesInput,
+  options?: RequestInit,
+): Promise<GalleryImage[]> => {
+  return customFetch<GalleryImage[]>(getReorderGalleryImagesUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(reorderGalleryImagesInput),
+  });
+};
+
+export const getReorderGalleryImagesMutationOptions = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderGalleryImages>>,
+    TError,
+    { id: number; data: BodyType<ReorderGalleryImagesInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reorderGalleryImages>>,
+  TError,
+  { id: number; data: BodyType<ReorderGalleryImagesInput> },
+  TContext
+> => {
+  const mutationKey = ["reorderGalleryImages"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reorderGalleryImages>>,
+    { id: number; data: BodyType<ReorderGalleryImagesInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return reorderGalleryImages(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReorderGalleryImagesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reorderGalleryImages>>
+>;
+export type ReorderGalleryImagesMutationBody =
+  BodyType<ReorderGalleryImagesInput>;
+export type ReorderGalleryImagesMutationError = ErrorType<ApiError>;
+
+/**
+ * @summary Reorder all images in a gallery in one request
+ */
+export const useReorderGalleryImages = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderGalleryImages>>,
+    TError,
+    { id: number; data: BodyType<ReorderGalleryImagesInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reorderGalleryImages>>,
+  TError,
+  { id: number; data: BodyType<ReorderGalleryImagesInput> },
+  TContext
+> => {
+  return useMutation(getReorderGalleryImagesMutationOptions(options));
 };
 
 /**

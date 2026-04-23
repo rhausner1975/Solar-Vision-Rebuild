@@ -402,6 +402,40 @@ paths:
       responses:
         "204": { description: Deleted }
 
+  /admin/galleries/{id}/reorder:
+    post:
+      operationId: reorderGalleryImages
+      tags: [galleries]
+      summary: Reorder all images in a gallery in one request
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReorderGalleryImagesInput" }
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GalleryImage" }
+        "400":
+          description: Invalid reorder payload (ids don't match the gallery)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+        "404":
+          description: Gallery not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+
   /admin/storage/image-variants-status:
     get:
       operationId: getImageVariantsStatus
@@ -903,6 +937,16 @@ components:
         caption: { type: ["string", "null"], maxLength: 500 }
         altText: { type: ["string", "null"], maxLength: 300 }
         sortOrder: { type: ["integer", "null"] }
+    ReorderGalleryImagesInput:
+      type: object
+      description: Full list of image ids in the gallery in the desired new order. Must include every image in the gallery exactly once.
+      properties:
+        imageIds:
+          type: array
+          items: { type: integer }
+          minItems: 0
+          maxItems: 10000
+      required: [imageIds]
     GalleryWithImages:
       type: object
       properties:

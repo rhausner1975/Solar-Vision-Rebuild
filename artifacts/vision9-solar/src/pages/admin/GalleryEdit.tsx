@@ -1,20 +1,38 @@
 import { Helmet } from "react-helmet-async";
 import { Link, useRoute } from "wouter";
-import { ArrowLeft, Upload, Trash2, Plus, GripVertical } from "lucide-react";
-import { useState, useRef } from "react";
+import { ArrowLeft, Upload, Trash2, GripVertical, ArrowDownAZ, Save, Undo2 } from "lucide-react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { 
-  useListGalleries, 
+import {
+  useListGalleries,
   useUpdateGallery,
   useAddGalleryImage,
   useUpdateGalleryImage,
   useDeleteGalleryImage,
   useRequestUploadUrl,
+  useReorderGalleryImages,
   getListGalleriesQueryKey,
   type GalleryImage,
 } from "@workspace/api-client-react";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,17 +121,118 @@ function ImageMetaEditor({ image }: { image: GalleryImage }) {
   );
 }
 
+/**
+ * Natural-order comparator: "KLS_2" sorts before "KLS_10". We strip the file
+ * extension before comparing so two images that only differ in extension keep
+ * a stable relative order.
+ */
+const filenameCollator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
+function filenameSortKey(img: GalleryImage): string {
+  const raw = (img.altText?.trim() || img.objectPath.split("/").pop() || "").toLowerCase();
+  const dot = raw.lastIndexOf(".");
+  return dot > 0 ? raw.slice(0, dot) : raw;
+}
+
+function SortableImageTile({
+  img,
+  disabled,
+  onDelete,
+  deletePending,
+}: {
+  img: GalleryImage;
+  disabled: boolean;
+  onDelete: (id: number) => void;
+  deletePending: boolean;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: img.id, disabled });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      data-testid={`image-tile-${img.id}`}
+      className="group relative aspect-square bg-muted rounded-md border border-border overflow-hidden"
+    >
+      <img
+        src={imageVariantUrl(img.objectPath, "thumb")}
+        loading="lazy"
+        decoding="async"
+        alt={img.altText || ""}
+        className="w-full h-full object-cover pointer-events-none select-none"
+      />
+      <button
+        type="button"
+        aria-label="Drag to reorder"
+        data-testid={`button-drag-${img.id}`}
+        className="absolute top-1 left-1 p-1 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing touch-none disabled:cursor-not-allowed disabled:opacity-40"
+        disabled={disabled}
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <ImageMetaEditor image={img} />
+      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
+        <div className="pointer-events-auto">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="icon" disabled={deletePending}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Image?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete the image from this gallery.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onDelete(img.id)}
+                  className="bg-destructive text-destructive-foreground"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function GalleryEdit() {
   const [, params] = useRoute("/admin/galleries/:id");
   const id = Number(params?.id);
   const { data: galleries, isLoading } = useListGalleries();
   const gallery = galleries?.find(g => g.id === id);
-  
+
   const updateGallery = useUpdateGallery();
   const requestUpload = useRequestUploadUrl();
   const addImage = useAddGalleryImage();
   const deleteImage = useDeleteGalleryImage();
-  
+  const reorderImages = useReorderGalleryImages();
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -245,6 +364,112 @@ export default function GalleryEdit() {
       }
     );
   };
+
+  // --- Image ordering state ---
+  // `serverOrder` is the order coming from the server (by sortOrder). `localOrder`
+  // is the draft order the admin is editing — reordering via drag/drop or the
+  // Sort-by-filename button mutates it, and Save order flushes it to the server.
+  const serverImages = useMemo<GalleryImage[]>(
+    () => gallery?.images ?? [],
+    [gallery?.images],
+  );
+  const serverOrderIds = useMemo(() => serverImages.map((i) => i.id), [serverImages]);
+  const [localOrderIds, setLocalOrderIds] = useState<number[]>(serverOrderIds);
+
+  // Sync local order with the server, but don't trample an in-progress draft on
+  // unrelated refetches (e.g. metadata save, window-focus refetch). We only
+  // touch the draft when:
+  //   1. The SET of image ids changed (an image was added or removed), in which
+  //      case we must add/remove to stay in sync. We preserve the relative
+  //      order of ids the draft already knows about and append/remove as
+  //      needed.
+  //   2. The local draft still matches some previous server order that just
+  //      changed on the backend without user edits — then we take the new
+  //      server order.
+  useEffect(() => {
+    setLocalOrderIds((prev) => {
+      const prevSet = new Set(prev);
+      const serverSet = new Set(serverOrderIds);
+      const sameIdSet =
+        prev.length === serverOrderIds.length &&
+        prev.every((id) => serverSet.has(id));
+      if (sameIdSet) {
+        // The set of images is identical; keep whatever order the user has
+        // locally. This preserves an in-progress draft across unrelated
+        // refetches AND correctly handles our own reorder mutation where
+        // `prev` already matches the new server order.
+        return prev;
+      }
+      // Add/remove path: keep the order of ids still present in the server
+      // set, then append any brand-new ids at the end in their server-order
+      // position. This way, a draft survives an alt-text save that happens
+      // while dragging, and a just-uploaded image appears at the bottom.
+      const next = prev.filter((id) => serverSet.has(id));
+      for (const id of serverOrderIds) {
+        if (!prevSet.has(id)) next.push(id);
+      }
+      return next;
+    });
+  }, [serverOrderIds]);
+
+  const imagesById = useMemo(() => {
+    const m = new Map<number, GalleryImage>();
+    for (const img of serverImages) m.set(img.id, img);
+    return m;
+  }, [serverImages]);
+
+  const orderedImages = useMemo(
+    () =>
+      localOrderIds
+        .map((id) => imagesById.get(id))
+        .filter((img): img is GalleryImage => Boolean(img)),
+    [localOrderIds, imagesById],
+  );
+
+  const isDirtyOrder =
+    localOrderIds.length !== serverOrderIds.length ||
+    localOrderIds.some((id, i) => id !== serverOrderIds[i]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = localOrderIds.indexOf(Number(active.id));
+    const newIndex = localOrderIds.indexOf(Number(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    setLocalOrderIds(arrayMove(localOrderIds, oldIndex, newIndex));
+  };
+
+  const sortByFilename = () => {
+    const sorted = [...orderedImages].sort((a, b) =>
+      filenameCollator.compare(filenameSortKey(a), filenameSortKey(b)),
+    );
+    setLocalOrderIds(sorted.map((i) => i.id));
+  };
+
+  const resetOrder = () => setLocalOrderIds(serverOrderIds);
+
+  const saveOrder = () => {
+    if (!gallery) return;
+    reorderImages.mutate(
+      { id: gallery.id, data: { imageIds: localOrderIds } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListGalleriesQueryKey() });
+          toast({ title: "Image order saved" });
+        },
+        onError: () => {
+          toast({ title: "Failed to save order", variant: "destructive" });
+        },
+      },
+    );
+  };
+
+  const orderDisabled = reorderImages.isPending || isUploading;
 
   if (isLoading || !gallery) {
     return <div className="p-8 text-center">Loading...</div>;
@@ -436,13 +661,13 @@ export default function GalleryEdit() {
 
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-background rounded-lg border border-border shadow-sm p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <h2 className="text-xl font-bold text-foreground">Images</h2>
                 <div>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
                     ref={fileInputRef}
                     onChange={handleFileUpload}
                   />
@@ -452,44 +677,78 @@ export default function GalleryEdit() {
                 </div>
               </div>
 
-              {gallery.images && gallery.images.length > 0 ? (
-                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {gallery.images.map((img) => (
-                    <div key={img.id} className="group relative aspect-square bg-muted rounded-md border border-border overflow-hidden">
-                      <img
-                        src={imageVariantUrl(img.objectPath, "thumb")}
-                        loading="lazy"
-                        decoding="async"
-                        alt={img.altText || ""}
-                        className="w-full h-full object-cover"
-                      />
-                      <ImageMetaEditor image={img} />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="icon">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Image?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete the image from this gallery.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteImage(img.id)} className="bg-destructive text-destructive-foreground">
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
-                  ))}
+              {orderedImages.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-md border border-border bg-muted/40">
+                  <span className="text-sm text-secondary mr-auto">
+                    Drag tiles by the grip handle to rearrange, or click{" "}
+                    <span className="font-medium">Sort by filename</span>.
+                  </span>
+                  {isDirtyOrder && (
+                    <span
+                      data-testid="badge-unsaved-order"
+                      className="inline-flex items-center rounded-full bg-amber-100 text-amber-900 text-xs px-2 py-0.5 font-medium"
+                    >
+                      Unsaved order changes
+                    </span>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={sortByFilename}
+                    disabled={orderDisabled}
+                    data-testid="button-sort-by-filename"
+                  >
+                    <ArrowDownAZ className="h-4 w-4 mr-2" />
+                    Sort by filename
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetOrder}
+                    disabled={orderDisabled || !isDirtyOrder}
+                    data-testid="button-reset-order"
+                  >
+                    <Undo2 className="h-4 w-4 mr-2" />
+                    Reset
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={saveOrder}
+                    disabled={orderDisabled || !isDirtyOrder}
+                    data-testid="button-save-order"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {reorderImages.isPending ? "Saving..." : "Save order"}
+                  </Button>
                 </div>
+              )}
+
+              {orderedImages.length > 0 ? (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext items={localOrderIds} strategy={rectSortingStrategy}>
+                    <div
+                      className="grid sm:grid-cols-2 md:grid-cols-3 gap-4"
+                      data-testid="image-grid"
+                    >
+                      {orderedImages.map((img) => (
+                        <SortableImageTile
+                          key={img.id}
+                          img={img}
+                          disabled={orderDisabled}
+                          onDelete={handleDeleteImage}
+                          deletePending={deleteImage.isPending}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
               ) : (
                 <div className="text-center py-12 bg-muted/50 rounded-lg border border-dashed border-border">
                   <p className="text-secondary mb-4">No images yet. Upload some photos to get started.</p>

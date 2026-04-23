@@ -40,6 +40,7 @@ export * from "./regenerateImageVariantsForce";
 export * from "./regenerateImageVariantsParams";
 export * from "./regenerateImageVariantsResult";
 export * from "./regenerateImageVariantsResultGeneratedItem";
+export * from "./reorderGalleryImagesInput";
 export * from "./requestPasswordResetInput";
 export * from "./requestUploadUrlBody";
 export * from "./requestUploadUrlResponse";

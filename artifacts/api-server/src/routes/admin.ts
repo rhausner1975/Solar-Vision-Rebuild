@@ -31,6 +31,8 @@ import {
   UpdateGalleryImageBody,
   UpdateGalleryImageParams,
   DeleteGalleryImageParams,
+  ReorderGalleryImagesBody,
+  ReorderGalleryImagesParams,
   UpdateNotificationSettingsBody,
   SubscribeWebPushBody,
   UnsubscribeWebPushBody,
@@ -445,6 +447,79 @@ router.delete("/admin/galleries/:id", requireAdmin, async (req, res): Promise<vo
   }
   await db.delete(galleriesTable).where(eq(galleriesTable.id, params.data.id));
   res.status(204).end();
+});
+
+// Admin-only: replace the sort_order of every image in a gallery in one
+// transaction. Caller sends the full list of image ids in the desired new
+// order; the handler verifies every id belongs to the gallery and that the
+// list exactly matches the gallery's current image set (no adds/removes here
+// — use POST/DELETE for that), then writes sort_order = index for each row.
+router.post("/admin/galleries/:id/reorder", requireAdmin, async (req, res): Promise<void> => {
+  const params = ReorderGalleryImagesParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const parsed = ReorderGalleryImagesBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const galleryId = params.data.id;
+  const requestedIds = parsed.data.imageIds;
+
+  const [gallery] = await db
+    .select({ id: galleriesTable.id })
+    .from(galleriesTable)
+    .where(eq(galleriesTable.id, galleryId));
+  if (!gallery) {
+    res.status(404).json({ error: "Gallery not found" });
+    return;
+  }
+
+  if (new Set(requestedIds).size !== requestedIds.length) {
+    res.status(400).json({ error: "Duplicate image ids in reorder payload" });
+    return;
+  }
+
+  const rows = await db
+    .select({ id: galleryImagesTable.id })
+    .from(galleryImagesTable)
+    .where(eq(galleryImagesTable.galleryId, galleryId));
+  const existingIds = new Set(rows.map((r) => r.id));
+  if (existingIds.size !== requestedIds.length) {
+    res.status(400).json({
+      error: `Reorder payload has ${requestedIds.length} ids but gallery has ${existingIds.size} images`,
+    });
+    return;
+  }
+  for (const id of requestedIds) {
+    if (!existingIds.has(id)) {
+      res.status(400).json({ error: `Image ${id} does not belong to gallery ${galleryId}` });
+      return;
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < requestedIds.length; i += 1) {
+      await tx
+        .update(galleryImagesTable)
+        .set({ sortOrder: i })
+        .where(
+          and(
+            eq(galleryImagesTable.id, requestedIds[i]),
+            eq(galleryImagesTable.galleryId, galleryId),
+          ),
+        );
+    }
+  });
+
+  const updated = await db
+    .select()
+    .from(galleryImagesTable)
+    .where(eq(galleryImagesTable.galleryId, galleryId))
+    .orderBy(asc(galleryImagesTable.sortOrder));
+  res.json(updated);
 });
 
 router.post("/admin/galleries/:id/images", requireAdmin, async (req, res): Promise<void> => {

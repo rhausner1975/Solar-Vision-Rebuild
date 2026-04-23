@@ -352,6 +352,17 @@ export interface GalleryImageUpdate {
   sortOrder?: number | null;
 }
 
+/**
+ * Full list of image ids in the gallery in the desired new order. Must include every image in the gallery exactly once.
+ */
+export interface ReorderGalleryImagesInput {
+  /**
+   * @minItems 0
+   * @maxItems 10000
+   */
+  imageIds: number[];
+}
+
 export interface GalleryWithImages {
   id: number;
   slug: string;
