@@ -27,6 +27,21 @@ export interface DeliveryOutcome {
   status: DeliveryStatus;
   error?: string;
   sentAt?: Date;
+  permanent?: boolean;
+}
+
+export const MAX_NOTIFICATION_ATTEMPTS = 3;
+const RETRY_DELAYS_MS = [3 * 60_000, 12 * 60_000];
+
+function nextRetryDelayMs(attemptsCompleted: number): number | null {
+  if (attemptsCompleted >= MAX_NOTIFICATION_ATTEMPTS) return null;
+  const idx = Math.max(0, attemptsCompleted - 1);
+  return RETRY_DELAYS_MS[idx] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1] ?? null;
+}
+
+function isTransientHttpStatus(status: number): boolean {
+  if (status === 408 || status === 429) return true;
+  return status >= 500 && status < 600;
 }
 
 interface RelatedRef {
@@ -137,7 +152,11 @@ async function deliverEmail(
         status: "failed",
         errorMessage: error.slice(0, 2000),
       });
-      return { status: "failed", error };
+      return {
+        status: "failed",
+        error,
+        permanent: !isTransientHttpStatus(response.status),
+      };
     }
     await recordAttempt({
       channel: "email",
@@ -197,6 +216,7 @@ async function sendSms(message: string, related: RelatedRef): Promise<DeliveryOu
       status: "skipped",
       error:
         "SMS not configured: a recipient phone number must be saved in Notification Settings (or set NOTIFY_SMS_TO), and TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER must all be set",
+      permanent: true,
     };
   }
   const truncated =
@@ -230,7 +250,11 @@ async function sendSms(message: string, related: RelatedRef): Promise<DeliveryOu
         status: "failed",
         errorMessage: error.slice(0, 2000),
       });
-      return { status: "failed", error };
+      return {
+        status: "failed",
+        error,
+        permanent: !isTransientHttpStatus(response.status),
+      };
     }
     await recordAttempt({
       channel: "sms",
@@ -339,7 +363,10 @@ export interface ContactSubmissionPayload {
   message: string;
 }
 
-function contactEmailBody(data: ContactSubmissionPayload): { subject: string; body: string } {
+export function contactEmailBody(data: ContactSubmissionPayload): {
+  subject: string;
+  body: string;
+} {
   const subject = `New contact submission from ${data.name}`;
   const body = [
     "A new contact form submission was received on vision9.biz.",
@@ -354,7 +381,7 @@ function contactEmailBody(data: ContactSubmissionPayload): { subject: string; bo
   return { subject, body };
 }
 
-function contactSmsBody(data: ContactSubmissionPayload): string {
+export function contactSmsBody(data: ContactSubmissionPayload): string {
   const parts = [`New Vision9 contact: ${data.name}`];
   if (data.phone) parts.push(`Phone: ${data.phone}`);
   else parts.push(`Email: ${data.email}`);
@@ -363,7 +390,10 @@ function contactSmsBody(data: ContactSubmissionPayload): string {
   return parts.join(" | ");
 }
 
-function estimateEmailBody(data: Record<string, unknown>): { subject: string; body: string } {
+export function estimateEmailBody(data: Record<string, unknown>): {
+  subject: string;
+  body: string;
+} {
   const name = typeof data["name"] === "string" ? (data["name"] as string) : "(unknown)";
   const subject = `New estimate request from ${name}`;
   const lines = ["A new estimate request was received on vision9.biz.", ""];
@@ -378,7 +408,7 @@ function estimateEmailBody(data: Record<string, unknown>): { subject: string; bo
   return { subject, body: lines.join("\n") };
 }
 
-function estimateSmsBody(data: Record<string, unknown>): string {
+export function estimateSmsBody(data: Record<string, unknown>): string {
   const name = typeof data["name"] === "string" ? (data["name"] as string) : "(unknown)";
   const parts = [`New Vision9 estimate: ${name}`];
   const phone = data["phone"];
@@ -394,21 +424,63 @@ function estimateSmsBody(data: Record<string, unknown>): string {
   return parts.join(" | ");
 }
 
+async function getCurrentAttempts(
+  kind: NotifyKind,
+  id: number,
+  channel: Channel,
+): Promise<number> {
+  try {
+    if (kind === "contact") {
+      const [row] = await db
+        .select({
+          emailAttempts: contactSubmissionsTable.emailAttempts,
+          smsAttempts: contactSubmissionsTable.smsAttempts,
+        })
+        .from(contactSubmissionsTable)
+        .where(eq(contactSubmissionsTable.id, id));
+      if (!row) return 0;
+      return channel === "email" ? row.emailAttempts : row.smsAttempts;
+    }
+    const [row] = await db
+      .select({
+        emailAttempts: estimateRequestsTable.emailAttempts,
+        smsAttempts: estimateRequestsTable.smsAttempts,
+      })
+      .from(estimateRequestsTable)
+      .where(eq(estimateRequestsTable.id, id));
+    if (!row) return 0;
+    return channel === "email" ? row.emailAttempts : row.smsAttempts;
+  } catch (err) {
+    logger.error({ err, kind, id, channel }, "Failed to read attempt count");
+    return 0;
+  }
+}
+
 async function persistOutcome(
   kind: NotifyKind,
   id: number,
   channel: Channel,
   outcome: DeliveryOutcome,
+  attemptsCompleted: number,
 ): Promise<void> {
   const updates: Record<string, unknown> = {};
+  let nextRetryAt: Date | null = null;
+  if (outcome.status === "failed" && !outcome.permanent) {
+    const delay = nextRetryDelayMs(attemptsCompleted);
+    if (delay !== null) nextRetryAt = new Date(Date.now() + delay);
+  }
   if (channel === "email") {
     updates.emailStatus = outcome.status;
     updates.emailError = outcome.error ?? null;
     updates.emailSentAt = outcome.status === "sent" ? (outcome.sentAt ?? new Date()) : null;
+    if (outcome.status !== "skipped") updates.emailAttempts = attemptsCompleted;
+    updates.emailNextRetryAt = nextRetryAt;
   } else {
     updates.smsStatus = outcome.status;
     updates.smsError = outcome.error ?? null;
     updates.smsSentAt = outcome.status === "sent" ? (outcome.sentAt ?? new Date()) : null;
+    if (outcome.status !== "skipped") updates.smsAttempts = attemptsCompleted;
+    updates.smsNextRetryAt = nextRetryAt;
   }
   try {
     if (kind === "contact") {
@@ -437,22 +509,84 @@ async function dispatch(
   const related: RelatedRef = { kind, id };
   const result: { email?: DeliveryOutcome; sms?: DeliveryOutcome } = {};
   if (channels.includes("email")) {
+    const prior = await getCurrentAttempts(kind, id, "email");
     const outcome = await deliverEmail(email.subject, email.body, related);
+    const attemptsCompleted = outcome.status === "skipped" ? prior : prior + 1;
     result.email = outcome;
-    await persistOutcome(kind, id, "email", outcome);
+    await persistOutcome(kind, id, "email", outcome, attemptsCompleted);
     if (outcome.status === "failed") {
-      logger.error({ kind, id, error: outcome.error }, "Notification email failed");
+      const exhausted = attemptsCompleted >= MAX_NOTIFICATION_ATTEMPTS || outcome.permanent;
+      logger.error(
+        {
+          kind,
+          id,
+          error: outcome.error,
+          attempts: attemptsCompleted,
+          permanent: outcome.permanent ?? false,
+          willRetry: !exhausted,
+        },
+        exhausted
+          ? "Notification email failed permanently (no further retries)"
+          : "Notification email failed; scheduled for retry",
+      );
     }
   }
   if (channels.includes("sms")) {
+    const prior = await getCurrentAttempts(kind, id, "sms");
     const outcome = await sendSms(sms, related);
+    const attemptsCompleted = outcome.status === "skipped" ? prior : prior + 1;
     result.sms = outcome;
-    await persistOutcome(kind, id, "sms", outcome);
+    await persistOutcome(kind, id, "sms", outcome, attemptsCompleted);
     if (outcome.status === "failed") {
-      logger.error({ kind, id, error: outcome.error }, "Notification SMS failed");
+      const exhausted = attemptsCompleted >= MAX_NOTIFICATION_ATTEMPTS || outcome.permanent;
+      logger.error(
+        {
+          kind,
+          id,
+          error: outcome.error,
+          attempts: attemptsCompleted,
+          permanent: outcome.permanent ?? false,
+          willRetry: !exhausted,
+        },
+        exhausted
+          ? "Notification SMS failed permanently (no further retries)"
+          : "Notification SMS failed; scheduled for retry",
+      );
     }
   }
   return result;
+}
+
+async function resetAttempts(
+  kind: NotifyKind,
+  id: number,
+  channels: Channel[],
+): Promise<void> {
+  const updates: Record<string, unknown> = {};
+  if (channels.includes("email")) {
+    updates.emailAttempts = 0;
+    updates.emailNextRetryAt = null;
+  }
+  if (channels.includes("sms")) {
+    updates.smsAttempts = 0;
+    updates.smsNextRetryAt = null;
+  }
+  if (Object.keys(updates).length === 0) return;
+  try {
+    if (kind === "contact") {
+      await db
+        .update(contactSubmissionsTable)
+        .set(updates)
+        .where(eq(contactSubmissionsTable.id, id));
+    } else {
+      await db
+        .update(estimateRequestsTable)
+        .set(updates)
+        .where(eq(estimateRequestsTable.id, id));
+    }
+  } catch (err) {
+    logger.error({ err, kind, id, channels }, "Failed to reset notification attempts");
+  }
 }
 
 export function notifyContactSubmission(id: number, data: ContactSubmissionPayload): void {
@@ -488,6 +622,7 @@ export async function resendContactNotification(
   data: ContactSubmissionPayload,
   channels: Channel[],
 ): Promise<{ email?: DeliveryOutcome; sms?: DeliveryOutcome }> {
+  await resetAttempts("contact", id, channels);
   const email = contactEmailBody(data);
   const sms = contactSmsBody(data);
   return dispatch("contact", id, channels, email, sms);
@@ -498,7 +633,60 @@ export async function resendEstimateNotification(
   data: Record<string, unknown>,
   channels: Channel[],
 ): Promise<{ email?: DeliveryOutcome; sms?: DeliveryOutcome }> {
+  await resetAttempts("estimate", id, channels);
   const email = estimateEmailBody(data);
   const sms = estimateSmsBody(data);
   return dispatch("estimate", id, channels, email, sms);
+}
+
+export async function retryNotificationChannel(
+  kind: NotifyKind,
+  id: number,
+  channel: Channel,
+): Promise<DeliveryOutcome | null> {
+  if (kind === "contact") {
+    const [row] = await db
+      .select()
+      .from(contactSubmissionsTable)
+      .where(eq(contactSubmissionsTable.id, id));
+    if (!row) return null;
+    const email = contactEmailBody({
+      name: row.name,
+      email: row.email,
+      phone: row.phone,
+      message: row.message,
+    });
+    const sms = contactSmsBody({
+      name: row.name,
+      email: row.email,
+      phone: row.phone,
+      message: row.message,
+    });
+    const result = await dispatch("contact", id, [channel], email, sms);
+    return result[channel] ?? null;
+  }
+  const [row] = await db
+    .select()
+    .from(estimateRequestsTable)
+    .where(eq(estimateRequestsTable.id, id));
+  if (!row) return null;
+  const {
+    id: _id,
+    createdAt: _createdAt,
+    emailStatus: _es,
+    emailError: _ee,
+    emailSentAt: _esa,
+    emailAttempts: _ea,
+    emailNextRetryAt: _enra,
+    smsStatus: _ss,
+    smsError: _se,
+    smsSentAt: _ssa,
+    smsAttempts: _sa,
+    smsNextRetryAt: _snra,
+    ...estimateData
+  } = row;
+  const email = estimateEmailBody(estimateData as Record<string, unknown>);
+  const sms = estimateSmsBody(estimateData as Record<string, unknown>);
+  const result = await dispatch("estimate", id, [channel], email, sms);
+  return result[channel] ?? null;
 }

@@ -358,7 +358,9 @@ router.post(
     }
     const channels = (body.data.channels ?? ["email", "sms"]) as Channel[];
     const { id: _id, createdAt: _createdAt, emailStatus: _es, emailError: _ee, emailSentAt: _esa,
-      smsStatus: _ss, smsError: _se, smsSentAt: _ssa, ...estimateData } = row;
+      emailAttempts: _ea, emailNextRetryAt: _enra,
+      smsStatus: _ss, smsError: _se, smsSentAt: _ssa,
+      smsAttempts: _sa, smsNextRetryAt: _snra, ...estimateData } = row;
     await resendEstimateNotification(row.id, estimateData as Record<string, unknown>, channels);
     const [updated] = await db
       .select()

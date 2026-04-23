@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { seedDefaultAdmin, purgeExpiredSessions } from "./lib/auth";
+import { startNotificationRetryWorker } from "./lib/retryWorker";
 
 const rawPort = process.env["PORT"];
 
@@ -20,6 +21,11 @@ if (Number.isNaN(port) || port <= 0) {
     await purgeExpiredSessions();
   } catch (err) {
     logger.error({ err }, "Startup tasks failed");
+  }
+  try {
+    startNotificationRetryWorker();
+  } catch (err) {
+    logger.error({ err }, "Failed to start notification retry worker");
   }
 
   app.listen(port, (err) => {
