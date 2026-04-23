@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import {
   db,
   adminUsersTable,
@@ -833,5 +833,90 @@ router.post(
   },
 );
 
-
+router.post(
+  "/admin/notification-log/:id/retry",
+  sameOriginGuard,
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const idParam = Number(req.params["id"]);
+    if (!Number.isInteger(idParam) || idParam <= 0) {
+      res.status(400).json({ error: "Invalid log entry id" });
+      return;
+    }
+    const [entry] = await db
+      .select()
+      .from(notificationLogTable)
+      .where(eq(notificationLogTable.id, idParam));
+    if (!entry) {
+      res.status(404).json({ error: "Log entry not found" });
+      return;
+    }
+    if (entry.channel !== "email" && entry.channel !== "sms") {
+      res.status(400).json({ error: "Unsupported channel" });
+      return;
+    }
+    if (!entry.relatedKind || !entry.relatedId) {
+      res.status(400).json({ error: "This entry has no related lead to resend" });
+      return;
+    }
+    const channels: Channel[] = [entry.channel];
+    if (entry.relatedKind === "contact") {
+      const [row] = await db
+        .select()
+        .from(contactSubmissionsTable)
+        .where(eq(contactSubmissionsTable.id, entry.relatedId));
+      if (!row) {
+        res.status(404).json({ error: "Original contact submission no longer exists" });
+        return;
+      }
+      await resendContactNotification(
+        row.id,
+        { name: row.name, email: row.email, phone: row.phone, message: row.message },
+        channels,
+      );
+    } else if (entry.relatedKind === "estimate") {
+      const [row] = await db
+        .select()
+        .from(estimateRequestsTable)
+        .where(eq(estimateRequestsTable.id, entry.relatedId));
+      if (!row) {
+        res.status(404).json({ error: "Original estimate request no longer exists" });
+        return;
+      }
+      const { id: _id, createdAt: _createdAt, emailStatus: _es, emailError: _ee,
+        emailSentAt: _esa, smsStatus: _ss, smsError: _se, smsSentAt: _ssa, ...estimateData } = row;
+      await resendEstimateNotification(row.id, estimateData as Record<string, unknown>, channels);
+    } else {
+      res.status(400).json({ error: "This kind of entry cannot be retried" });
+      return;
+    }
+    const [latest] = await db
+      .select()
+      .from(notificationLogTable)
+      .where(
+        and(
+          eq(notificationLogTable.relatedKind, entry.relatedKind),
+          eq(notificationLogTable.relatedId, entry.relatedId),
+          eq(notificationLogTable.channel, entry.channel),
+        ),
+      )
+      .orderBy(desc(notificationLogTable.createdAt))
+      .limit(1);
+    if (!latest) {
+      res.status(500).json({ error: "Retry attempt did not produce a log entry" });
+      return;
+    }
+    res.json({
+      id: latest.id,
+      channel: latest.channel,
+      recipients: latest.recipients,
+      subject: latest.subject,
+      relatedKind: latest.relatedKind,
+      relatedId: latest.relatedId,
+      status: latest.status,
+      errorMessage: latest.errorMessage,
+      createdAt: latest.createdAt,
+    });
+  },
+);
 export default router;

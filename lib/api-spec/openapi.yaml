@@ -595,6 +595,32 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/NotificationLogEntry" }
+  /admin/notification-log/{id}/retry:
+    post:
+      operationId: retryNotificationLogEntry
+      tags: [admin]
+      summary: Re-send the notification recorded by this log entry
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: New log entry recording the retry attempt
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationLogEntry" }
+        "400":
+          description: Entry is not retryable (e.g. test send or missing related lead)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+        "404":
+          description: Log entry or related lead not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
 
   /storage/uploads/request-url:
     post:

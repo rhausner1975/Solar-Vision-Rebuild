@@ -705,6 +705,25 @@ export const GetNotificationLogResponse = zod.array(
 );
 
 /**
+ * @summary Re-send the notification recorded by this log entry
+ */
+export const RetryNotificationLogEntryParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RetryNotificationLogEntryResponse = zod.object({
+  id: zod.number(),
+  channel: zod.enum(["email", "sms"]),
+  recipients: zod.array(zod.string()),
+  subject: zod.string().nullish(),
+  relatedKind: zod.string().nullish(),
+  relatedId: zod.number().nullish(),
+  status: zod.enum(["success", "failed"]),
+  errorMessage: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
  * @summary Get a presigned upload URL
  */
 export const RequestUploadUrlBody = zod.object({

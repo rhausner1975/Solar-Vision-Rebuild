@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetNotificationSettings,
@@ -12,8 +12,10 @@ import {
   useSendTestNotificationSms,
   useGetNotificationLog,
   useSendTestNotificationInApp,
+  useRetryNotificationLogEntry,
   getGetNotificationSettingsQueryKey,
   getListInAppNotificationsQueryKey,
+  getGetNotificationLogQueryKey,
 } from "@workspace/api-client-react";
 import { Send, MessageSquare, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,6 +73,44 @@ export default function NotificationSettings() {
   const { toast } = useToast();
   const [hydrated, setHydrated] = useState(false);
   const { data: logEntries, isLoading: isLoadingLog } = useGetNotificationLog();
+  const retryEntry = useRetryNotificationLogEntry();
+  const [retryingId, setRetryingId] = useState<number | null>(null);
+
+  function handleRetry(id: number) {
+    setRetryingId(id);
+    retryEntry.mutate(
+      { id },
+      {
+        onSuccess: (result) => {
+          if (result.status === "success") {
+            toast({
+              title: "Notification resent",
+              description: `Re-sent ${result.channel} for the original lead.`,
+            });
+          } else {
+            toast({
+              title: "Retry still failing",
+              description: result.errorMessage ?? "The resend attempt failed again.",
+              variant: "destructive",
+            });
+          }
+          queryClient.invalidateQueries({ queryKey: getGetNotificationLogQueryKey() });
+        },
+        onError: (error: unknown) => {
+          const apiError = error as { data?: { error?: string } };
+          toast({
+            title: "Could not retry notification",
+            description:
+              apiError?.data?.error ?? "The retry request failed before it could be sent.",
+            variant: "destructive",
+          });
+        },
+        onSettled: () => {
+          setRetryingId(null);
+        },
+      },
+    );
+  }
 
   function handleSendTest() {
     sendTest.mutate(undefined, {
@@ -388,6 +428,7 @@ export default function NotificationSettings() {
                     <th className="py-2 pr-3 font-semibold">Recipients</th>
                     <th className="py-2 pr-3 font-semibold">Lead</th>
                     <th className="py-2 pr-3 font-semibold">Status</th>
+                    <th className="py-2 pr-3 font-semibold sr-only">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -432,6 +473,26 @@ export default function NotificationSettings() {
                               Delivered
                             </span>
                           )}
+                        </td>
+                        <td className="py-3 pr-3 whitespace-nowrap">
+                          {failed && entry.relatedKind && entry.relatedKind !== "test" && entry.relatedId ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRetry(entry.id)}
+                              disabled={retryingId === entry.id}
+                              data-testid={`button-retry-notification-${entry.id}`}
+                            >
+                              <RefreshCw
+                                className={
+                                  "h-3.5 w-3.5 mr-1 " +
+                                  (retryingId === entry.id ? "animate-spin" : "")
+                                }
+                              />
+                              {retryingId === entry.id ? "Retrying..." : "Retry"}
+                            </Button>
+                          ) : null}
                         </td>
                       </tr>
                     );

@@ -3107,6 +3107,93 @@ export function useGetNotificationLog<
 }
 
 /**
+ * @summary Re-send the notification recorded by this log entry
+ */
+export const getRetryNotificationLogEntryUrl = (id: number) => {
+  return `/api/admin/notification-log/${id}/retry`;
+};
+
+export const retryNotificationLogEntry = async (
+  id: number,
+  options?: RequestInit,
+): Promise<NotificationLogEntry> => {
+  return customFetch<NotificationLogEntry>(
+    getRetryNotificationLogEntryUrl(id),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getRetryNotificationLogEntryMutationOptions = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof retryNotificationLogEntry>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof retryNotificationLogEntry>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["retryNotificationLogEntry"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof retryNotificationLogEntry>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return retryNotificationLogEntry(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RetryNotificationLogEntryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof retryNotificationLogEntry>>
+>;
+
+export type RetryNotificationLogEntryMutationError = ErrorType<ApiError>;
+
+/**
+ * @summary Re-send the notification recorded by this log entry
+ */
+export const useRetryNotificationLogEntry = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof retryNotificationLogEntry>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof retryNotificationLogEntry>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getRetryNotificationLogEntryMutationOptions(options));
+};
+
+/**
  * @summary Get a presigned upload URL
  */
 export const getRequestUploadUrlUrl = () => {
