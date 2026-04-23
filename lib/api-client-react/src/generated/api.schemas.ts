@@ -425,6 +425,57 @@ export interface TestInAppNotificationResult {
   error?: string | null;
 }
 
+export interface WebPushPublicKey {
+  /** @nullable */
+  publicKey: string | null;
+  configured: boolean;
+}
+
+export type WebPushSubscriptionInputKeys = {
+  /**
+   * @minLength 1
+   * @maxLength 500
+   */
+  p256dh: string;
+  /**
+   * @minLength 1
+   * @maxLength 500
+   */
+  auth: string;
+};
+
+export interface WebPushSubscriptionInput {
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   */
+  endpoint: string;
+  keys: WebPushSubscriptionInputKeys;
+  /**
+   * @maxLength 500
+   * @nullable
+   */
+  userAgent?: string | null;
+}
+
+export interface WebPushUnsubscribeInput {
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   */
+  endpoint: string;
+}
+
+export interface TestPushNotificationResult {
+  delivered: boolean;
+  configured: boolean;
+  sent: number;
+  failed: number;
+  subscriptions: number;
+  /** @nullable */
+  error?: string | null;
+}
+
 export interface InAppNotification {
   id: number;
   kind: string;

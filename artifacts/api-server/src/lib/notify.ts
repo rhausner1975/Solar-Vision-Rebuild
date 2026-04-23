@@ -1,5 +1,6 @@
 import { ReplitConnectors } from "@replit/connectors-sdk";
 import { eq } from "drizzle-orm";
+import webpush from "web-push";
 import {
   db,
   contactSubmissionsTable,
@@ -7,6 +8,7 @@ import {
   notificationSettingsTable,
   notificationLogTable,
   inAppNotificationsTable,
+  webPushSubscriptionsTable,
 } from "@workspace/db";
 import { NOTIFICATION_MAX_ATTEMPTS } from "@workspace/api-zod";
 import { logger } from "./logger";
@@ -455,6 +457,230 @@ function dispatchInApp(kind: string, title: string, body: string, context: strin
   });
 }
 
+// ---------------------------------------------------------------------------
+// Web push
+// ---------------------------------------------------------------------------
+
+const VAPID_PUBLIC_KEY = process.env["VAPID_PUBLIC_KEY"]?.trim() || null;
+const VAPID_PRIVATE_KEY = process.env["VAPID_PRIVATE_KEY"]?.trim() || null;
+const VAPID_SUBJECT =
+  process.env["VAPID_SUBJECT"]?.trim() || "mailto:info@vision9.biz";
+
+let vapidConfigured = false;
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+    vapidConfigured = true;
+  } catch (err) {
+    logger.error({ err }, "Failed to configure VAPID details for web push");
+  }
+}
+
+export function isWebPushConfigured(): boolean {
+  return vapidConfigured;
+}
+
+export function getWebPushPublicKey(): string | null {
+  return vapidConfigured ? VAPID_PUBLIC_KEY : null;
+}
+
+export interface WebPushSubscriptionPayload {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  userAgent?: string | null;
+}
+
+export async function registerWebPushSubscription(
+  sub: WebPushSubscriptionPayload,
+): Promise<void> {
+  await db
+    .insert(webPushSubscriptionsTable)
+    .values({
+      endpoint: sub.endpoint,
+      p256dh: sub.keys.p256dh,
+      auth: sub.keys.auth,
+      userAgent: sub.userAgent ?? null,
+      disabledAt: null,
+      lastError: null,
+      lastErrorAt: null,
+    })
+    .onConflictDoUpdate({
+      target: webPushSubscriptionsTable.endpoint,
+      set: {
+        p256dh: sub.keys.p256dh,
+        auth: sub.keys.auth,
+        userAgent: sub.userAgent ?? null,
+        disabledAt: null,
+        lastError: null,
+        lastErrorAt: null,
+      },
+    });
+}
+
+export async function unregisterWebPushSubscription(endpoint: string): Promise<void> {
+  await db
+    .delete(webPushSubscriptionsTable)
+    .where(eq(webPushSubscriptionsTable.endpoint, endpoint));
+}
+
+export async function countActiveWebPushSubscriptions(): Promise<number> {
+  const rows = await db.select().from(webPushSubscriptionsTable);
+  return rows.filter((r) => r.disabledAt === null).length;
+}
+
+interface PushPayload {
+  kind: string;
+  title: string;
+  body: string;
+  url?: string;
+  tag?: string;
+}
+
+interface PushSendSummary {
+  configured: boolean;
+  subscriptions: number;
+  sent: number;
+  failed: number;
+  error?: string;
+}
+
+async function sendWebPushToAll(payload: PushPayload): Promise<PushSendSummary> {
+  if (!vapidConfigured) {
+    return {
+      configured: false,
+      subscriptions: 0,
+      sent: 0,
+      failed: 0,
+      error:
+        "Web push is not configured. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY (and optionally VAPID_SUBJECT) on the server.",
+    };
+  }
+  const subs = await db.select().from(webPushSubscriptionsTable);
+  const active = subs.filter((s) => s.disabledAt === null);
+  if (active.length === 0) {
+    return { configured: true, subscriptions: 0, sent: 0, failed: 0 };
+  }
+  const json = JSON.stringify(payload);
+  let sent = 0;
+  let failed = 0;
+  let lastError: string | undefined;
+  await Promise.all(
+    active.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.p256dh, auth: sub.auth },
+          },
+          json,
+          { TTL: 60 * 60 * 24 },
+        );
+        sent += 1;
+        try {
+          await db
+            .update(webPushSubscriptionsTable)
+            .set({ lastSuccessAt: new Date(), lastError: null, lastErrorAt: null })
+            .where(eq(webPushSubscriptionsTable.id, sub.id));
+        } catch (err) {
+          logger.warn({ err, id: sub.id }, "Failed to mark push subscription successful");
+        }
+      } catch (err: unknown) {
+        failed += 1;
+        const status = (err as { statusCode?: number })?.statusCode;
+        const message =
+          err instanceof Error ? err.message : typeof err === "string" ? err : String(err);
+        lastError = message;
+        const gone = status === 404 || status === 410;
+        try {
+          if (gone) {
+            await db
+              .delete(webPushSubscriptionsTable)
+              .where(eq(webPushSubscriptionsTable.id, sub.id));
+            logger.info(
+              { id: sub.id, endpoint: sub.endpoint, status },
+              "Removed expired web push subscription",
+            );
+          } else {
+            await db
+              .update(webPushSubscriptionsTable)
+              .set({
+                lastError: message.slice(0, 500),
+                lastErrorAt: new Date(),
+              })
+              .where(eq(webPushSubscriptionsTable.id, sub.id));
+          }
+        } catch (innerErr) {
+          logger.warn({ err: innerErr, id: sub.id }, "Failed to record push subscription error");
+        }
+        logger.warn(
+          { id: sub.id, status, error: message },
+          "Web push delivery failed for subscription",
+        );
+      }
+    }),
+  );
+  return {
+    configured: true,
+    subscriptions: active.length,
+    sent,
+    failed,
+    error: failed > 0 && sent === 0 ? lastError : undefined,
+  };
+}
+
+function dispatchPush(payload: PushPayload, context: string): void {
+  if (!vapidConfigured) return;
+  void sendWebPushToAll(payload).then((summary) => {
+    if (summary.failed > 0) {
+      logger.warn(
+        { context, sent: summary.sent, failed: summary.failed },
+        "Some web push deliveries failed",
+      );
+    }
+  });
+}
+
+export async function sendTestNotificationPush(): Promise<{
+  delivered: boolean;
+  configured: boolean;
+  sent: number;
+  failed: number;
+  subscriptions: number;
+  error?: string;
+}> {
+  const summary = await sendWebPushToAll({
+    kind: "test",
+    title: "Test push from Vision9 Solar",
+    body: `If you can see this, web push notifications are working. Sent at ${new Date().toLocaleTimeString()}.`,
+    tag: "vision9-test",
+  });
+  const delivered = summary.configured && summary.sent > 0;
+  if (delivered) {
+    logger.info(
+      { sent: summary.sent, subscriptions: summary.subscriptions },
+      "Sent test web push",
+    );
+  } else if (summary.configured && summary.subscriptions === 0) {
+    logger.info("Test web push skipped: no active subscriptions");
+  } else {
+    logger.warn({ error: summary.error }, "Test web push failed");
+  }
+  return {
+    delivered,
+    configured: summary.configured,
+    sent: summary.sent,
+    failed: summary.failed,
+    subscriptions: summary.subscriptions,
+    error:
+      summary.error ??
+      (!summary.configured
+        ? "Web push is not configured on the server"
+        : summary.subscriptions === 0
+          ? "No browsers are subscribed to push notifications yet"
+          : undefined),
+  };
+}
+
 const DEFAULT_DEDUP_WINDOW_MS = 5 * 60 * 1000;
 const NOTIFY_DEDUP_WINDOW_MS = (() => {
   const raw = process.env["NOTIFY_DEDUP_WINDOW_MS"];
@@ -744,6 +970,16 @@ export function notifyContactSubmission(id: number, data: ContactSubmissionPaylo
     contactSmsBody(data),
     "contact-submission",
   );
+  dispatchPush(
+    {
+      kind: "contact",
+      title: `New contact submission from ${data.name}`,
+      body: contactSmsBody(data),
+      url: "/admin/contact",
+      tag: `contact-${id}`,
+    },
+    "contact-submission",
+  );
   void dispatch("contact", id, ["email", "sms"], email, sms);
 }
 
@@ -763,6 +999,16 @@ export function notifyEstimateRequest(id: number, data: Record<string, unknown>)
     "estimate",
     `New estimate request from ${name}`,
     estimateSmsBody(data),
+    "estimate-request",
+  );
+  dispatchPush(
+    {
+      kind: "estimate",
+      title: `New estimate request from ${name}`,
+      body: estimateSmsBody(data),
+      url: "/admin/estimates",
+      tag: `estimate-${id}`,
+    },
     "estimate-request",
   );
   void dispatch("estimate", id, ["email", "sms"], email, sms);

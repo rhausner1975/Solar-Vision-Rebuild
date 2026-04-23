@@ -716,6 +716,55 @@ export const SendTestNotificationInAppResponse = zod.object({
 });
 
 /**
+ * @summary Get the VAPID public key used to register web push subscriptions
+ */
+export const GetWebPushPublicKeyResponse = zod.object({
+  publicKey: zod.string().nullable(),
+  configured: zod.boolean(),
+});
+
+/**
+ * @summary Register a browser push subscription for new-lead notifications
+ */
+export const subscribeWebPushBodyEndpointMax = 2000;
+
+export const subscribeWebPushBodyKeysP256dhMax = 500;
+
+export const subscribeWebPushBodyKeysAuthMax = 500;
+
+export const subscribeWebPushBodyUserAgentMax = 500;
+
+export const SubscribeWebPushBody = zod.object({
+  endpoint: zod.string().min(1).max(subscribeWebPushBodyEndpointMax),
+  keys: zod.object({
+    p256dh: zod.string().min(1).max(subscribeWebPushBodyKeysP256dhMax),
+    auth: zod.string().min(1).max(subscribeWebPushBodyKeysAuthMax),
+  }),
+  userAgent: zod.string().max(subscribeWebPushBodyUserAgentMax).nullish(),
+});
+
+/**
+ * @summary Remove a browser push subscription
+ */
+export const unsubscribeWebPushBodyEndpointMax = 2000;
+
+export const UnsubscribeWebPushBody = zod.object({
+  endpoint: zod.string().min(1).max(unsubscribeWebPushBodyEndpointMax),
+});
+
+/**
+ * @summary Send a test web push to all registered browser subscriptions
+ */
+export const SendTestNotificationPushResponse = zod.object({
+  delivered: zod.boolean(),
+  configured: zod.boolean(),
+  sent: zod.number(),
+  failed: zod.number(),
+  subscriptions: zod.number(),
+  error: zod.string().nullish(),
+});
+
+/**
  * @summary List the most recent in-app notifications and unread count
  */
 export const ListInAppNotificationsResponse = zod.object({

@@ -22,10 +22,15 @@ import {
   useGetNotificationLog,
   useSendTestNotificationInApp,
   useRetryNotificationLogEntry,
+  useGetWebPushPublicKey,
+  useSubscribeWebPush,
+  useUnsubscribeWebPush,
+  useSendTestNotificationPush,
   getGetNotificationSettingsQueryKey,
   getListInAppNotificationsQueryKey,
   getGetNotificationLogQueryKey,
 } from "@workspace/api-client-react";
+import { BellRing, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -76,16 +81,55 @@ function relatedLabel(kind: string | null | undefined, id: number | null | undef
   return id ? `${label} #${id}` : label;
 }
 
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+function pushSupportedInBrowser(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    "serviceWorker" in navigator &&
+    "PushManager" in window &&
+    "Notification" in window
+  );
+}
+
+async function getSwRegistration(): Promise<ServiceWorkerRegistration | null> {
+  if (!pushSupportedInBrowser()) return null;
+  try {
+    const existing = await navigator.serviceWorker.getRegistration("/sw.js");
+    if (existing) return existing;
+    return await navigator.serviceWorker.register("/sw.js");
+  } catch {
+    return null;
+  }
+}
+
 export default function NotificationSettings() {
   const { data, isLoading } = useGetNotificationSettings();
   const update = useUpdateNotificationSettings();
   const sendTest = useSendTestNotification();
   const sendTestSms = useSendTestNotificationSms();
   const sendTestInApp = useSendTestNotificationInApp();
+  const sendTestPush = useSendTestNotificationPush();
+  const subscribePush = useSubscribeWebPush();
+  const unsubscribePush = useUnsubscribeWebPush();
+  const { data: pushKey, isLoading: isLoadingPushKey } = useGetWebPushPublicKey();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [hydrated, setHydrated] = useState(false);
   const [pendingSmsTarget, setPendingSmsTarget] = useState<string | null>(null);
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | "unsupported">(
+    "default",
+  );
+  const [pushBusy, setPushBusy] = useState(false);
   const { data: logEntries, isLoading: isLoadingLog } = useGetNotificationLog();
   const retryEntry = useRetryNotificationLogEntry();
   const [retryingId, setRetryingId] = useState<number | null>(null);
@@ -124,6 +168,181 @@ export default function NotificationSettings() {
         },
       },
     );
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!pushSupportedInBrowser()) {
+      setPushSupported(false);
+      setPushPermission("unsupported");
+      return;
+    }
+    setPushSupported(true);
+    setPushPermission(Notification.permission);
+    (async () => {
+      const reg = await getSwRegistration();
+      if (cancelled || !reg) return;
+      const sub = await reg.pushManager.getSubscription();
+      if (!cancelled) setPushSubscribed(Boolean(sub));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleEnablePush() {
+    if (!pushSupportedInBrowser()) {
+      toast({
+        title: "Push not supported",
+        description: "This browser does not support web push notifications.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!pushKey?.configured || !pushKey.publicKey) {
+      toast({
+        title: "Web push is not configured",
+        description:
+          "Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY on the server, then restart the API.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setPushBusy(true);
+    try {
+      const permission = await Notification.requestPermission();
+      setPushPermission(permission);
+      if (permission !== "granted") {
+        toast({
+          title: "Permission denied",
+          description:
+            "You declined notification permission. Re-enable it in your browser settings to receive new-lead alerts.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const reg = await getSwRegistration();
+      if (!reg) throw new Error("Could not register the service worker.");
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(pushKey.publicKey).buffer as ArrayBuffer,
+        });
+      }
+      const json = sub.toJSON();
+      const p256dh = json.keys?.p256dh;
+      const auth = json.keys?.auth;
+      if (!sub.endpoint || !p256dh || !auth) {
+        throw new Error("Browser returned an incomplete push subscription.");
+      }
+      await new Promise<void>((resolve, reject) => {
+        subscribePush.mutate(
+          {
+            data: {
+              endpoint: sub!.endpoint,
+              keys: { p256dh, auth },
+              userAgent: navigator.userAgent.slice(0, 500),
+            },
+          },
+          { onSuccess: () => resolve(), onError: (err) => reject(err) },
+        );
+      });
+      setPushSubscribed(true);
+      toast({
+        title: "Push notifications enabled",
+        description: "This browser will now receive new-lead alerts.",
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast({
+        title: "Could not enable push notifications",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  async function handleDisablePush() {
+    setPushBusy(true);
+    try {
+      const reg = await getSwRegistration();
+      if (!reg) {
+        setPushSubscribed(false);
+        return;
+      }
+      const sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        setPushSubscribed(false);
+        return;
+      }
+      const endpoint = sub.endpoint;
+      try {
+        await sub.unsubscribe();
+      } catch {
+        // ignore — we still want to remove the server-side record
+      }
+      await new Promise<void>((resolve) => {
+        unsubscribePush.mutate(
+          { data: { endpoint } },
+          { onSuccess: () => resolve(), onError: () => resolve() },
+        );
+      });
+      setPushSubscribed(false);
+      toast({ title: "Push notifications disabled on this browser" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast({
+        title: "Could not disable push notifications",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  function handleSendTestPush() {
+    sendTestPush.mutate(undefined, {
+      onSuccess: (result) => {
+        if (result.delivered) {
+          toast({
+            title: "Test push sent",
+            description: `Sent to ${result.sent} of ${result.subscriptions} subscribed browser${result.subscriptions === 1 ? "" : "s"}.`,
+          });
+        } else if (!result.configured) {
+          toast({
+            title: "Web push is not configured",
+            description:
+              result.error ??
+              "Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY on the server, then restart.",
+            variant: "destructive",
+          });
+        } else if (result.subscriptions === 0) {
+          toast({
+            title: "No browsers subscribed yet",
+            description: "Click Enable push notifications first.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Test push failed",
+            description:
+              result.error ?? "The server tried to send the push but every delivery failed.",
+            variant: "destructive",
+          });
+        }
+      },
+      onError: () => {
+        toast({
+          title: "Could not send test push",
+          description: "The request failed before the push could be sent.",
+          variant: "destructive",
+        });
+      },
+    });
   }
 
   function handleSendTest() {
@@ -456,33 +675,6 @@ export default function NotificationSettings() {
                     <Send className="h-4 w-4 mr-2" />
                     {sendTest.isPending ? "Sending..." : "Send test email"}
                   </Button>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={handleSendTestSms}
-                      disabled={sendTestSms.isPending}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      {sendTestSms.isPending ? "Sending..." : "Send test SMS"}
-                    </Button>
-                    {data?.smsRecipient ? (
-                      <span
-                        className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-1 text-xs text-secondary"
-                        data-testid="sms-effective-recipient"
-                      >
-                        Will send to&nbsp;
-                        <span className="font-mono text-foreground">{data.smsRecipient}</span>
-                      </span>
-                    ) : (
-                      <span
-                        className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-secondary"
-                        data-testid="sms-effective-recipient"
-                      >
-                        SMS disabled
-                      </span>
-                    )}
-                  </div>
                   <Button
                     type="button"
                     variant="secondary"
@@ -508,6 +700,82 @@ export default function NotificationSettings() {
                     <Bell className="h-4 w-4 mr-2" />
                     {sendTestInApp.isPending ? "Sending..." : "Send test in-app alert"}
                   </Button>
+                </div>
+
+                <div className="pt-4 border-t space-y-3" data-testid="push-section">
+                  <div>
+                    <h3 className="font-semibold text-foreground">Browser push notifications</h3>
+                    <p className="text-xs text-secondary">
+                      Get a popup alert on this device — even when the admin tab is closed — for
+                      every new contact submission and estimate request. Each browser must enable
+                      this separately.
+                    </p>
+                  </div>
+                  {!pushSupported ? (
+                    <p
+                      className="text-xs text-secondary italic"
+                      data-testid="push-status-unsupported"
+                    >
+                      This browser does not support web push notifications.
+                    </p>
+                  ) : isLoadingPushKey ? (
+                    <p className="text-xs text-secondary">Loading push status…</p>
+                  ) : !pushKey?.configured ? (
+                    <p
+                      className="text-xs text-destructive"
+                      data-testid="push-status-not-configured"
+                    >
+                      Web push is not configured on the server. An admin must set
+                      <code className="mx-1 font-mono">VAPID_PUBLIC_KEY</code> and
+                      <code className="mx-1 font-mono">VAPID_PRIVATE_KEY</code> and restart the API.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-3">
+                      {pushSubscribed ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleDisablePush}
+                          disabled={pushBusy}
+                          data-testid="push-disable"
+                        >
+                          <BellOff className="h-4 w-4 mr-2" />
+                          {pushBusy ? "Working..." : "Disable on this browser"}
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={handleEnablePush}
+                          disabled={pushBusy}
+                          data-testid="push-enable"
+                        >
+                          <BellRing className="h-4 w-4 mr-2" />
+                          {pushBusy ? "Working..." : "Enable push notifications"}
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handleSendTestPush}
+                        disabled={sendTestPush.isPending}
+                        data-testid="push-test"
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        {sendTestPush.isPending ? "Sending..." : "Send test push"}
+                      </Button>
+                      <span
+                        className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-1 text-xs text-secondary"
+                        data-testid="push-status"
+                      >
+                        {pushSubscribed
+                          ? "This browser is subscribed"
+                          : pushPermission === "denied"
+                            ? "Permission blocked in browser settings"
+                            : "Not subscribed on this browser"}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <p className="text-xs text-secondary pt-2">

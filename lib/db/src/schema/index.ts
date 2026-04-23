@@ -8,3 +8,4 @@ export * from "./galleryImages";
 export * from "./notificationSettings";
 export * from "./notificationLog";
 export * from "./inAppNotifications";
+export * from "./webPushSubscriptions";

@@ -51,7 +51,11 @@ import type {
   SubmissionAck,
   TestInAppNotificationResult,
   TestNotificationResult,
+  TestPushNotificationResult,
   TestSmsNotificationResult,
+  WebPushPublicKey,
+  WebPushSubscriptionInput,
+  WebPushUnsubscribeInput,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2878,6 +2882,337 @@ export const useSendTestNotificationInApp = <
   TContext
 > => {
   return useMutation(getSendTestNotificationInAppMutationOptions(options));
+};
+
+/**
+ * @summary Get the VAPID public key used to register web push subscriptions
+ */
+export const getGetWebPushPublicKeyUrl = () => {
+  return `/api/admin/notification-settings/push/public-key`;
+};
+
+export const getWebPushPublicKey = async (
+  options?: RequestInit,
+): Promise<WebPushPublicKey> => {
+  return customFetch<WebPushPublicKey>(getGetWebPushPublicKeyUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetWebPushPublicKeyQueryKey = () => {
+  return [`/api/admin/notification-settings/push/public-key`] as const;
+};
+
+export const getGetWebPushPublicKeyQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWebPushPublicKey>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getWebPushPublicKey>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetWebPushPublicKeyQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getWebPushPublicKey>>
+  > = ({ signal }) => getWebPushPublicKey({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWebPushPublicKey>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWebPushPublicKeyQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWebPushPublicKey>>
+>;
+export type GetWebPushPublicKeyQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the VAPID public key used to register web push subscriptions
+ */
+
+export function useGetWebPushPublicKey<
+  TData = Awaited<ReturnType<typeof getWebPushPublicKey>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getWebPushPublicKey>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWebPushPublicKeyQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Register a browser push subscription for new-lead notifications
+ */
+export const getSubscribeWebPushUrl = () => {
+  return `/api/admin/notification-settings/push/subscribe`;
+};
+
+export const subscribeWebPush = async (
+  webPushSubscriptionInput: WebPushSubscriptionInput,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getSubscribeWebPushUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(webPushSubscriptionInput),
+  });
+};
+
+export const getSubscribeWebPushMutationOptions = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribeWebPush>>,
+    TError,
+    { data: BodyType<WebPushSubscriptionInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof subscribeWebPush>>,
+  TError,
+  { data: BodyType<WebPushSubscriptionInput> },
+  TContext
+> => {
+  const mutationKey = ["subscribeWebPush"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof subscribeWebPush>>,
+    { data: BodyType<WebPushSubscriptionInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return subscribeWebPush(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubscribeWebPushMutationResult = NonNullable<
+  Awaited<ReturnType<typeof subscribeWebPush>>
+>;
+export type SubscribeWebPushMutationBody = BodyType<WebPushSubscriptionInput>;
+export type SubscribeWebPushMutationError = ErrorType<ApiError>;
+
+/**
+ * @summary Register a browser push subscription for new-lead notifications
+ */
+export const useSubscribeWebPush = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribeWebPush>>,
+    TError,
+    { data: BodyType<WebPushSubscriptionInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof subscribeWebPush>>,
+  TError,
+  { data: BodyType<WebPushSubscriptionInput> },
+  TContext
+> => {
+  return useMutation(getSubscribeWebPushMutationOptions(options));
+};
+
+/**
+ * @summary Remove a browser push subscription
+ */
+export const getUnsubscribeWebPushUrl = () => {
+  return `/api/admin/notification-settings/push/unsubscribe`;
+};
+
+export const unsubscribeWebPush = async (
+  webPushUnsubscribeInput: WebPushUnsubscribeInput,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUnsubscribeWebPushUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(webPushUnsubscribeInput),
+  });
+};
+
+export const getUnsubscribeWebPushMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unsubscribeWebPush>>,
+    TError,
+    { data: BodyType<WebPushUnsubscribeInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unsubscribeWebPush>>,
+  TError,
+  { data: BodyType<WebPushUnsubscribeInput> },
+  TContext
+> => {
+  const mutationKey = ["unsubscribeWebPush"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unsubscribeWebPush>>,
+    { data: BodyType<WebPushUnsubscribeInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return unsubscribeWebPush(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnsubscribeWebPushMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unsubscribeWebPush>>
+>;
+export type UnsubscribeWebPushMutationBody = BodyType<WebPushUnsubscribeInput>;
+export type UnsubscribeWebPushMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove a browser push subscription
+ */
+export const useUnsubscribeWebPush = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unsubscribeWebPush>>,
+    TError,
+    { data: BodyType<WebPushUnsubscribeInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unsubscribeWebPush>>,
+  TError,
+  { data: BodyType<WebPushUnsubscribeInput> },
+  TContext
+> => {
+  return useMutation(getUnsubscribeWebPushMutationOptions(options));
+};
+
+/**
+ * @summary Send a test web push to all registered browser subscriptions
+ */
+export const getSendTestNotificationPushUrl = () => {
+  return `/api/admin/notification-settings/test-push`;
+};
+
+export const sendTestNotificationPush = async (
+  options?: RequestInit,
+): Promise<TestPushNotificationResult> => {
+  return customFetch<TestPushNotificationResult>(
+    getSendTestNotificationPushUrl(),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getSendTestNotificationPushMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendTestNotificationPush>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendTestNotificationPush>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["sendTestNotificationPush"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendTestNotificationPush>>,
+    void
+  > = () => {
+    return sendTestNotificationPush(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendTestNotificationPushMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendTestNotificationPush>>
+>;
+
+export type SendTestNotificationPushMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Send a test web push to all registered browser subscriptions
+ */
+export const useSendTestNotificationPush = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendTestNotificationPush>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendTestNotificationPush>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getSendTestNotificationPushMutationOptions(options));
 };
 
 /**

@@ -32,6 +32,8 @@ import {
   UpdateGalleryImageParams,
   DeleteGalleryImageParams,
   UpdateNotificationSettingsBody,
+  SubscribeWebPushBody,
+  UnsubscribeWebPushBody,
 } from "@workspace/api-zod";
 import {
   hashPassword,
@@ -66,6 +68,11 @@ import {
   sendTestNotificationEmail,
   sendTestNotificationSms,
   sendTestInAppNotification,
+  sendTestNotificationPush,
+  registerWebPushSubscription,
+  unregisterWebPushSubscription,
+  getWebPushPublicKey,
+  isWebPushConfigured,
   type Channel,
 } from "../lib/notify";
 
@@ -821,6 +828,80 @@ router.post(
   requireAdmin,
   async (_req, res): Promise<void> => {
     const result = await sendTestInAppNotification();
+    res.json(result);
+  },
+);
+
+router.get(
+  "/admin/notification-settings/push/public-key",
+  requireAdmin,
+  async (_req, res): Promise<void> => {
+    res.json({
+      publicKey: getWebPushPublicKey(),
+      configured: isWebPushConfigured(),
+    });
+  },
+);
+
+router.post(
+  "/admin/notification-settings/push/subscribe",
+  sameOriginGuard,
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    if (!isWebPushConfigured()) {
+      res.status(503).json({
+        error:
+          "Web push is not configured on the server. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY (and optionally VAPID_SUBJECT) and restart.",
+      });
+      return;
+    }
+    const parsed = SubscribeWebPushBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    try {
+      await registerWebPushSubscription({
+        endpoint: parsed.data.endpoint,
+        keys: parsed.data.keys,
+        userAgent: parsed.data.userAgent ?? null,
+      });
+    } catch (err) {
+      req.log.error({ err }, "Failed to register web push subscription");
+      res.status(500).json({ error: "Failed to register subscription" });
+      return;
+    }
+    res.status(204).end();
+  },
+);
+
+router.post(
+  "/admin/notification-settings/push/unsubscribe",
+  sameOriginGuard,
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const parsed = UnsubscribeWebPushBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    try {
+      await unregisterWebPushSubscription(parsed.data.endpoint);
+    } catch (err) {
+      req.log.error({ err }, "Failed to unregister web push subscription");
+      res.status(500).json({ error: "Failed to remove subscription" });
+      return;
+    }
+    res.status(204).end();
+  },
+);
+
+router.post(
+  "/admin/notification-settings/test-push",
+  sameOriginGuard,
+  requireAdmin,
+  async (_req, res): Promise<void> => {
+    const result = await sendTestNotificationPush();
     res.json(result);
   },
 );

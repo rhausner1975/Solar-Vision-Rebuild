@@ -567,6 +567,66 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/TestInAppNotificationResult" }
 
+  /admin/notification-settings/push/public-key:
+    get:
+      operationId: getWebPushPublicKey
+      tags: [admin]
+      summary: Get the VAPID public key used to register web push subscriptions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebPushPublicKey" }
+
+  /admin/notification-settings/push/subscribe:
+    post:
+      operationId: subscribeWebPush
+      tags: [admin]
+      summary: Register a browser push subscription for new-lead notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WebPushSubscriptionInput" }
+      responses:
+        "204": { description: Stored }
+        "400":
+          description: Invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+        "503":
+          description: Web push not configured
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+
+  /admin/notification-settings/push/unsubscribe:
+    post:
+      operationId: unsubscribeWebPush
+      tags: [admin]
+      summary: Remove a browser push subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WebPushUnsubscribeInput" }
+      responses:
+        "204": { description: Removed }
+
+  /admin/notification-settings/test-push:
+    post:
+      operationId: sendTestNotificationPush
+      tags: [admin]
+      summary: Send a test web push to all registered browser subscriptions
+      responses:
+        "200":
+          description: Result of the test push send
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestPushNotificationResult" }
+
   /admin/in-app-notifications:
     get:
       operationId: listInAppNotifications
@@ -908,6 +968,39 @@ components:
         delivered: { type: boolean }
         error: { type: ["string", "null"] }
       required: [delivered]
+    WebPushPublicKey:
+      type: object
+      properties:
+        publicKey: { type: ["string", "null"] }
+        configured: { type: boolean }
+      required: [publicKey, configured]
+    WebPushSubscriptionInput:
+      type: object
+      properties:
+        endpoint: { type: string, minLength: 1, maxLength: 2000 }
+        keys:
+          type: object
+          properties:
+            p256dh: { type: string, minLength: 1, maxLength: 500 }
+            auth: { type: string, minLength: 1, maxLength: 500 }
+          required: [p256dh, auth]
+        userAgent: { type: ["string", "null"], maxLength: 500 }
+      required: [endpoint, keys]
+    WebPushUnsubscribeInput:
+      type: object
+      properties:
+        endpoint: { type: string, minLength: 1, maxLength: 2000 }
+      required: [endpoint]
+    TestPushNotificationResult:
+      type: object
+      properties:
+        delivered: { type: boolean }
+        configured: { type: boolean }
+        sent: { type: integer }
+        failed: { type: integer }
+        subscriptions: { type: integer }
+        error: { type: ["string", "null"] }
+      required: [delivered, configured, sent, failed, subscriptions]
     InAppNotification:
       type: object
       properties:
