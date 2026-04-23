@@ -491,6 +491,19 @@ export interface InAppNotificationList {
   unreadCount: number;
 }
 
+export interface InAppNotificationsCleanupStatus {
+  /** @nullable */
+  lastRunAt: string | null;
+  lastDeletedByAge: number;
+  lastDeletedByCap: number;
+  lastTotalDeleted: number;
+  /** @nullable */
+  lastError: string | null;
+  retentionDays: number;
+  maxRows: number;
+  intervalMs: number;
+}
+
 export interface NotificationSettingsInput {
   /**
    * @minItems 1

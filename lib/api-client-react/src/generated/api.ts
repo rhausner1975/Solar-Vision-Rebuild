@@ -36,6 +36,7 @@ import type {
   ImageMissingVariants,
   ImageVariantsStatus,
   InAppNotificationList,
+  InAppNotificationsCleanupStatus,
   LoginInput,
   NotificationLogEntry,
   NotificationSettings,
@@ -3283,6 +3284,87 @@ export function useListInAppNotifications<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListInAppNotificationsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get the most recent in-app notifications cleanup run summary
+ */
+export const getGetInAppNotificationsCleanupStatusUrl = () => {
+  return `/api/admin/in-app-notifications/cleanup-status`;
+};
+
+export const getInAppNotificationsCleanupStatus = async (
+  options?: RequestInit,
+): Promise<InAppNotificationsCleanupStatus> => {
+  return customFetch<InAppNotificationsCleanupStatus>(
+    getGetInAppNotificationsCleanupStatusUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetInAppNotificationsCleanupStatusQueryKey = () => {
+  return [`/api/admin/in-app-notifications/cleanup-status`] as const;
+};
+
+export const getGetInAppNotificationsCleanupStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getInAppNotificationsCleanupStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getInAppNotificationsCleanupStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetInAppNotificationsCleanupStatusQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getInAppNotificationsCleanupStatus>>
+  > = ({ signal }) =>
+    getInAppNotificationsCleanupStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getInAppNotificationsCleanupStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetInAppNotificationsCleanupStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getInAppNotificationsCleanupStatus>>
+>;
+export type GetInAppNotificationsCleanupStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the most recent in-app notifications cleanup run summary
+ */
+
+export function useGetInAppNotificationsCleanupStatus<
+  TData = Awaited<ReturnType<typeof getInAppNotificationsCleanupStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getInAppNotificationsCleanupStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions =
+    getGetInAppNotificationsCleanupStatusQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -782,6 +782,20 @@ export const ListInAppNotificationsResponse = zod.object({
 });
 
 /**
+ * @summary Get the most recent in-app notifications cleanup run summary
+ */
+export const GetInAppNotificationsCleanupStatusResponse = zod.object({
+  lastRunAt: zod.coerce.date().nullable(),
+  lastDeletedByAge: zod.number(),
+  lastDeletedByCap: zod.number(),
+  lastTotalDeleted: zod.number(),
+  lastError: zod.string().nullable(),
+  retentionDays: zod.number(),
+  maxRows: zod.number(),
+  intervalMs: zod.number(),
+});
+
+/**
  * @summary List recent notification send attempts
  */
 export const GetNotificationLogResponseItem = zod.object({

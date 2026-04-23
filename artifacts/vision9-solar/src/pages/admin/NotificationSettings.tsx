@@ -26,9 +26,11 @@ import {
   useSubscribeWebPush,
   useUnsubscribeWebPush,
   useSendTestNotificationPush,
+  useGetInAppNotificationsCleanupStatus,
   getGetNotificationSettingsQueryKey,
   getListInAppNotificationsQueryKey,
   getGetNotificationLogQueryKey,
+  getGetInAppNotificationsCleanupStatusQueryKey,
 } from "@workspace/api-client-react";
 import { BellRing, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -131,6 +133,13 @@ export default function NotificationSettings() {
   );
   const [pushBusy, setPushBusy] = useState(false);
   const { data: logEntries, isLoading: isLoadingLog } = useGetNotificationLog();
+  const { data: cleanupStatus, isLoading: isLoadingCleanup } =
+    useGetInAppNotificationsCleanupStatus({
+      query: {
+        queryKey: getGetInAppNotificationsCleanupStatusQueryKey(),
+        refetchInterval: 60_000,
+      },
+    });
   const retryEntry = useRetryNotificationLogEntry();
   const [retryingId, setRetryingId] = useState<number | null>(null);
 
@@ -785,6 +794,91 @@ export default function NotificationSettings() {
                 </p>
               </form>
             </Form>
+          )}
+        </div>
+
+        <div
+          className="bg-background rounded-lg border border-border shadow-sm p-6 max-w-2xl"
+          data-testid="card-in-app-cleanup-status"
+        >
+          <div className="flex items-baseline justify-between mb-4 border-b pb-2">
+            <h2 className="text-xl font-bold text-foreground">In-app alert cleanup</h2>
+            <span className="text-xs text-secondary">Background maintenance</span>
+          </div>
+          {isLoadingCleanup ? (
+            <div className="text-secondary text-sm">Loading...</div>
+          ) : !cleanupStatus ? (
+            <div className="text-secondary text-sm">
+              Cleanup status is not available right now.
+            </div>
+          ) : (
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <div>
+                <dt className="text-xs uppercase text-secondary">Last cleanup</dt>
+                <dd
+                  className="text-foreground font-medium"
+                  data-testid="text-cleanup-last-run"
+                >
+                  {cleanupStatus.lastRunAt
+                    ? formatDateTime(cleanupStatus.lastRunAt)
+                    : "Hasn't run yet"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase text-secondary">Removed last run</dt>
+                <dd
+                  className="text-foreground font-medium"
+                  data-testid="text-cleanup-removed"
+                >
+                  {cleanupStatus.lastRunAt ? (
+                    <>
+                      {cleanupStatus.lastTotalDeleted}{" "}
+                      {cleanupStatus.lastTotalDeleted === 1 ? "alert" : "alerts"}
+                      {cleanupStatus.lastTotalDeleted > 0 ? (
+                        <span className="text-xs text-secondary font-normal">
+                          {" "}
+                          ({cleanupStatus.lastDeletedByAge} aged out,{" "}
+                          {cleanupStatus.lastDeletedByCap} over the cap)
+                        </span>
+                      ) : (
+                        <span className="text-xs text-secondary font-normal">
+                          {" "}
+                          (nothing to remove)
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase text-secondary">Retention</dt>
+                <dd
+                  className="text-foreground font-medium"
+                  data-testid="text-cleanup-retention"
+                >
+                  Read alerts kept for {cleanupStatus.retentionDays}{" "}
+                  {cleanupStatus.retentionDays === 1 ? "day" : "days"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase text-secondary">Cap</dt>
+                <dd className="text-foreground font-medium">
+                  Up to {cleanupStatus.maxRows.toLocaleString()} read alerts kept
+                </dd>
+              </div>
+              {cleanupStatus.lastError ? (
+                <div className="sm:col-span-2">
+                  <dt className="text-xs uppercase text-red-700 dark:text-red-300">
+                    Last error
+                  </dt>
+                  <dd className="text-red-700 dark:text-red-300 break-words">
+                    {cleanupStatus.lastError}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
           )}
         </div>
 

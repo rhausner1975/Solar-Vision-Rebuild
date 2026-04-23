@@ -639,6 +639,18 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/InAppNotificationList" }
 
+  /admin/in-app-notifications/cleanup-status:
+    get:
+      operationId: getInAppNotificationsCleanupStatus
+      tags: [admin]
+      summary: Get the most recent in-app notifications cleanup run summary
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InAppNotificationsCleanupStatus" }
+
   /admin/in-app-notifications/mark-all-read:
     post:
       operationId: markAllInAppNotificationsRead
@@ -1019,6 +1031,26 @@ components:
           items: { $ref: "#/components/schemas/InAppNotification" }
         unreadCount: { type: integer }
       required: [items, unreadCount]
+    InAppNotificationsCleanupStatus:
+      type: object
+      properties:
+        lastRunAt: { type: ["string", "null"], format: date-time }
+        lastDeletedByAge: { type: integer }
+        lastDeletedByCap: { type: integer }
+        lastTotalDeleted: { type: integer }
+        lastError: { type: ["string", "null"] }
+        retentionDays: { type: integer }
+        maxRows: { type: integer }
+        intervalMs: { type: integer }
+      required:
+        - lastRunAt
+        - lastDeletedByAge
+        - lastDeletedByCap
+        - lastTotalDeleted
+        - lastError
+        - retentionDays
+        - maxRows
+        - intervalMs
     NotificationSettingsInput:
       type: object
       properties:

@@ -28,6 +28,7 @@ export * from "./imageMissingVariantsMissingVariantsItem";
 export * from "./imageVariantsStatus";
 export * from "./inAppNotification";
 export * from "./inAppNotificationList";
+export * from "./inAppNotificationsCleanupStatus";
 export * from "./loginInput";
 export * from "./notificationLogEntry";
 export * from "./notificationLogEntryChannel";

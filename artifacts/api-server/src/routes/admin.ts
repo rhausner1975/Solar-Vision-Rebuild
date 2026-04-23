@@ -76,6 +76,7 @@ import {
   isWebPushConfigured,
   type Channel,
 } from "../lib/notify";
+import { getInAppNotificationsCleanupStatus } from "../lib/inAppNotificationsCleanup";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -919,6 +920,14 @@ router.get("/admin/in-app-notifications", requireAdmin, async (_req, res): Promi
     .where(isNull(inAppNotificationsTable.readAt));
   res.json({ items: rows, unreadCount: Number(count) });
 });
+
+router.get(
+  "/admin/in-app-notifications/cleanup-status",
+  requireAdmin,
+  async (_req, res): Promise<void> => {
+    res.json(getInAppNotificationsCleanupStatus());
+  },
+);
 
 router.post(
   "/admin/in-app-notifications/mark-all-read",

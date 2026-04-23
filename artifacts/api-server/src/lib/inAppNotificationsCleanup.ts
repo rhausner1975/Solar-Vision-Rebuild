@@ -26,12 +26,42 @@ const CLEANUP_INTERVAL_MS = readPositiveInt(
   DEFAULT_INTERVAL_MS,
 );
 
+export type InAppNotificationsCleanupStatus = {
+  lastRunAt: string | null;
+  lastDeletedByAge: number;
+  lastDeletedByCap: number;
+  lastTotalDeleted: number;
+  lastError: string | null;
+  retentionDays: number;
+  maxRows: number;
+  intervalMs: number;
+};
+
+let lastRunAt: Date | null = null;
+let lastDeletedByAge = 0;
+let lastDeletedByCap = 0;
+let lastError: string | null = null;
+
+export function getInAppNotificationsCleanupStatus(): InAppNotificationsCleanupStatus {
+  return {
+    lastRunAt: lastRunAt ? lastRunAt.toISOString() : null,
+    lastDeletedByAge,
+    lastDeletedByCap,
+    lastTotalDeleted: lastDeletedByAge + lastDeletedByCap,
+    lastError,
+    retentionDays: IN_APP_NOTIFICATIONS_RETENTION_DAYS,
+    maxRows: IN_APP_NOTIFICATIONS_MAX_ROWS,
+    intervalMs: CLEANUP_INTERVAL_MS,
+  };
+}
+
 export async function pruneInAppNotifications(): Promise<{
   deletedByAge: number;
   deletedByCap: number;
 }> {
   let deletedByAge = 0;
   let deletedByCap = 0;
+  let runError: string | null = null;
   try {
     const cutoff = new Date(
       Date.now() - IN_APP_NOTIFICATIONS_RETENTION_DAYS * 24 * 60 * 60 * 1000,
@@ -74,7 +104,12 @@ export async function pruneInAppNotifications(): Promise<{
     }
   } catch (err) {
     logger.error({ err }, "Failed to prune in_app_notifications");
+    runError = err instanceof Error ? err.message : String(err);
   }
+  lastRunAt = new Date();
+  lastDeletedByAge = deletedByAge;
+  lastDeletedByCap = deletedByCap;
+  lastError = runError;
   return { deletedByAge, deletedByCap };
 }
 
