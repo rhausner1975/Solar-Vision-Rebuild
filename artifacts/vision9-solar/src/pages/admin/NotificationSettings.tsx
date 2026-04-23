@@ -284,15 +284,33 @@ export default function NotificationSettings() {
                     <Send className="h-4 w-4 mr-2" />
                     {sendTest.isPending ? "Sending..." : "Send test email"}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleSendTestSms}
-                    disabled={sendTestSms.isPending}
-                  >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    {sendTestSms.isPending ? "Sending..." : "Send test SMS"}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleSendTestSms}
+                      disabled={sendTestSms.isPending}
+                    >
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      {sendTestSms.isPending ? "Sending..." : "Send test SMS"}
+                    </Button>
+                    {data?.smsRecipient ? (
+                      <span
+                        className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-1 text-xs text-secondary"
+                        data-testid="sms-effective-recipient"
+                      >
+                        Will send to&nbsp;
+                        <span className="font-mono text-foreground">{data.smsRecipient}</span>
+                      </span>
+                    ) : (
+                      <span
+                        className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-secondary"
+                        data-testid="sms-effective-recipient"
+                      >
+                        SMS disabled
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <p className="text-xs text-secondary pt-2">
