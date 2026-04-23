@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
-import { ArrowRight, Image as ImageIcon } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Zap } from "lucide-react";
 import { useListPublicGalleries } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { imageVariantUrl, imageSrcSet } from "@/lib/galleryImage";
@@ -42,6 +42,13 @@ export default function Galleries() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {galleries.map((gallery) => {
                 const coverImage = gallery.images[0];
+                const installYear = gallery.installDate
+                  ? (() => {
+                      const d = new Date(gallery.installDate);
+                      return Number.isNaN(d.getTime()) ? null : d.getFullYear();
+                    })()
+                  : null;
+                const hasSize = gallery.systemSizeKw != null;
                 return (
                   <Link key={gallery.id} href={`/galleries/${gallery.slug}`}>
                     <a className="group block bg-background border border-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow hover-elevate">
@@ -63,6 +70,18 @@ export default function Galleries() {
                           <ImageIcon className="h-3 w-3" />
                           {gallery.images.length}
                         </div>
+                        {hasSize && (
+                          <div
+                            className="absolute top-3 left-3 bg-primary text-primary-foreground px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-sm"
+                            data-testid={`chip-system-size-${gallery.slug}`}
+                          >
+                            <Zap className="h-3 w-3" />
+                            <span>{gallery.systemSizeKw} kW</span>
+                            {installYear && (
+                              <span className="opacity-80 font-medium">· {installYear}</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="p-6">
                         <h2 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">{gallery.title}</h2>
