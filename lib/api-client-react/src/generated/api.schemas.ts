@@ -196,6 +196,35 @@ export interface GalleryInput {
    * @nullable
    */
   location?: string | null;
+  /**
+   * @minimum 0
+   * @maximum 100000
+   * @nullable
+   */
+  systemSizeKw?: number | null;
+  /**
+   * @maxLength 200
+   * @nullable
+   */
+  panelBrand?: string | null;
+  /**
+   * @maxLength 200
+   * @nullable
+   */
+  inverterBrand?: string | null;
+  /** @nullable */
+  installDate?: string | null;
+  /**
+   * @minimum 0
+   * @maximum 100000
+   * @nullable
+   */
+  durationDays?: number | null;
+  /**
+   * @maxLength 20000
+   * @nullable
+   */
+  story?: string | null;
   published: boolean;
 }
 
@@ -207,6 +236,18 @@ export interface Gallery {
   description?: string | null;
   /** @nullable */
   location?: string | null;
+  /** @nullable */
+  systemSizeKw?: number | null;
+  /** @nullable */
+  panelBrand?: string | null;
+  /** @nullable */
+  inverterBrand?: string | null;
+  /** @nullable */
+  installDate?: string | null;
+  /** @nullable */
+  durationDays?: number | null;
+  /** @nullable */
+  story?: string | null;
   published: boolean;
   createdAt: string;
 }
@@ -265,6 +306,18 @@ export interface GalleryWithImages {
   description?: string | null;
   /** @nullable */
   location?: string | null;
+  /** @nullable */
+  systemSizeKw?: number | null;
+  /** @nullable */
+  panelBrand?: string | null;
+  /** @nullable */
+  inverterBrand?: string | null;
+  /** @nullable */
+  installDate?: string | null;
+  /** @nullable */
+  durationDays?: number | null;
+  /** @nullable */
+  story?: string | null;
   published: boolean;
   createdAt: string;
   images: GalleryImage[];

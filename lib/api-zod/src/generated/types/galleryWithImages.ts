@@ -15,6 +15,18 @@ export interface GalleryWithImages {
   description?: string | null;
   /** @nullable */
   location?: string | null;
+  /** @nullable */
+  systemSizeKw?: number | null;
+  /** @nullable */
+  panelBrand?: string | null;
+  /** @nullable */
+  inverterBrand?: string | null;
+  /** @nullable */
+  installDate?: Date | null;
+  /** @nullable */
+  durationDays?: number | null;
+  /** @nullable */
+  story?: string | null;
   published: boolean;
   createdAt: Date;
   images: GalleryImage[];

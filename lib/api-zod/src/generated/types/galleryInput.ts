@@ -27,5 +27,34 @@ export interface GalleryInput {
    * @nullable
    */
   location?: string | null;
+  /**
+   * @minimum 0
+   * @maximum 100000
+   * @nullable
+   */
+  systemSizeKw?: number | null;
+  /**
+   * @maxLength 200
+   * @nullable
+   */
+  panelBrand?: string | null;
+  /**
+   * @maxLength 200
+   * @nullable
+   */
+  inverterBrand?: string | null;
+  /** @nullable */
+  installDate?: Date | null;
+  /**
+   * @minimum 0
+   * @maximum 100000
+   * @nullable
+   */
+  durationDays?: number | null;
+  /**
+   * @maxLength 20000
+   * @nullable
+   */
+  story?: string | null;
   published: boolean;
 }

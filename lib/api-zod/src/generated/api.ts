@@ -86,6 +86,12 @@ export const ListPublicGalleriesResponseItem = zod.object({
   title: zod.string(),
   description: zod.string().nullish(),
   location: zod.string().nullish(),
+  systemSizeKw: zod.number().nullish(),
+  panelBrand: zod.string().nullish(),
+  inverterBrand: zod.string().nullish(),
+  installDate: zod.coerce.date().nullish(),
+  durationDays: zod.number().nullish(),
+  story: zod.string().nullish(),
   published: zod.boolean(),
   createdAt: zod.coerce.date(),
   images: zod.array(
@@ -116,6 +122,12 @@ export const GetPublicGalleryResponse = zod.object({
   title: zod.string(),
   description: zod.string().nullish(),
   location: zod.string().nullish(),
+  systemSizeKw: zod.number().nullish(),
+  panelBrand: zod.string().nullish(),
+  inverterBrand: zod.string().nullish(),
+  installDate: zod.coerce.date().nullish(),
+  durationDays: zod.number().nullish(),
+  story: zod.string().nullish(),
   published: zod.boolean(),
   createdAt: zod.coerce.date(),
   images: zod.array(
@@ -260,6 +272,12 @@ export const ListGalleriesResponseItem = zod.object({
   title: zod.string(),
   description: zod.string().nullish(),
   location: zod.string().nullish(),
+  systemSizeKw: zod.number().nullish(),
+  panelBrand: zod.string().nullish(),
+  inverterBrand: zod.string().nullish(),
+  installDate: zod.coerce.date().nullish(),
+  durationDays: zod.number().nullish(),
+  story: zod.string().nullish(),
   published: zod.boolean(),
   createdAt: zod.coerce.date(),
   images: zod.array(
@@ -283,11 +301,37 @@ export const createGalleryBodyDescriptionMax = 2000;
 
 export const createGalleryBodyLocationMax = 200;
 
+export const createGalleryBodySystemSizeKwMin = 0;
+export const createGalleryBodySystemSizeKwMax = 100000;
+
+export const createGalleryBodyPanelBrandMax = 200;
+
+export const createGalleryBodyInverterBrandMax = 200;
+
+export const createGalleryBodyDurationDaysMin = 0;
+export const createGalleryBodyDurationDaysMax = 100000;
+
+export const createGalleryBodyStoryMax = 20000;
+
 export const CreateGalleryBody = zod.object({
   slug: zod.string().min(1).max(createGalleryBodySlugMax),
   title: zod.string().min(1).max(createGalleryBodyTitleMax),
   description: zod.string().max(createGalleryBodyDescriptionMax).nullish(),
   location: zod.string().max(createGalleryBodyLocationMax).nullish(),
+  systemSizeKw: zod
+    .number()
+    .min(createGalleryBodySystemSizeKwMin)
+    .max(createGalleryBodySystemSizeKwMax)
+    .nullish(),
+  panelBrand: zod.string().max(createGalleryBodyPanelBrandMax).nullish(),
+  inverterBrand: zod.string().max(createGalleryBodyInverterBrandMax).nullish(),
+  installDate: zod.coerce.date().nullish(),
+  durationDays: zod
+    .number()
+    .min(createGalleryBodyDurationDaysMin)
+    .max(createGalleryBodyDurationDaysMax)
+    .nullish(),
+  story: zod.string().max(createGalleryBodyStoryMax).nullish(),
   published: zod.boolean(),
 });
 
@@ -303,11 +347,37 @@ export const updateGalleryBodyDescriptionMax = 2000;
 
 export const updateGalleryBodyLocationMax = 200;
 
+export const updateGalleryBodySystemSizeKwMin = 0;
+export const updateGalleryBodySystemSizeKwMax = 100000;
+
+export const updateGalleryBodyPanelBrandMax = 200;
+
+export const updateGalleryBodyInverterBrandMax = 200;
+
+export const updateGalleryBodyDurationDaysMin = 0;
+export const updateGalleryBodyDurationDaysMax = 100000;
+
+export const updateGalleryBodyStoryMax = 20000;
+
 export const UpdateGalleryBody = zod.object({
   slug: zod.string().min(1).max(updateGalleryBodySlugMax),
   title: zod.string().min(1).max(updateGalleryBodyTitleMax),
   description: zod.string().max(updateGalleryBodyDescriptionMax).nullish(),
   location: zod.string().max(updateGalleryBodyLocationMax).nullish(),
+  systemSizeKw: zod
+    .number()
+    .min(updateGalleryBodySystemSizeKwMin)
+    .max(updateGalleryBodySystemSizeKwMax)
+    .nullish(),
+  panelBrand: zod.string().max(updateGalleryBodyPanelBrandMax).nullish(),
+  inverterBrand: zod.string().max(updateGalleryBodyInverterBrandMax).nullish(),
+  installDate: zod.coerce.date().nullish(),
+  durationDays: zod
+    .number()
+    .min(updateGalleryBodyDurationDaysMin)
+    .max(updateGalleryBodyDurationDaysMax)
+    .nullish(),
+  story: zod.string().max(updateGalleryBodyStoryMax).nullish(),
   published: zod.boolean(),
 });
 
@@ -317,6 +387,12 @@ export const UpdateGalleryResponse = zod.object({
   title: zod.string(),
   description: zod.string().nullish(),
   location: zod.string().nullish(),
+  systemSizeKw: zod.number().nullish(),
+  panelBrand: zod.string().nullish(),
+  inverterBrand: zod.string().nullish(),
+  installDate: zod.coerce.date().nullish(),
+  durationDays: zod.number().nullish(),
+  story: zod.string().nullish(),
   published: zod.boolean(),
   createdAt: zod.coerce.date(),
 });

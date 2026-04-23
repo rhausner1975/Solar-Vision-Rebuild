@@ -47,6 +47,12 @@ const gallerySchema = z.object({
   slug: z.string().min(1, "Slug is required").regex(/^[a-z0-9-]+$/, "Slug must only contain lowercase letters, numbers, and hyphens"),
   location: z.string().optional(),
   description: z.string().optional(),
+  systemSizeKw: z.string().optional(),
+  panelBrand: z.string().optional(),
+  inverterBrand: z.string().optional(),
+  installDate: z.string().optional(),
+  durationDays: z.string().optional(),
+  story: z.string().optional(),
   published: z.boolean().default(false),
 });
 
@@ -120,13 +126,55 @@ export default function GalleryEdit() {
       slug: gallery?.slug || "",
       location: gallery?.location || "",
       description: gallery?.description || "",
+      systemSizeKw:
+        gallery?.systemSizeKw !== undefined && gallery?.systemSizeKw !== null
+          ? String(gallery.systemSizeKw)
+          : "",
+      panelBrand: gallery?.panelBrand || "",
+      inverterBrand: gallery?.inverterBrand || "",
+      installDate: gallery?.installDate
+        ? new Date(gallery.installDate).toISOString().slice(0, 10)
+        : "",
+      durationDays:
+        gallery?.durationDays !== undefined && gallery?.durationDays !== null
+          ? String(gallery.durationDays)
+          : "",
+      story: gallery?.story || "",
       published: gallery?.published || false,
     },
   });
 
   const onSubmit = (data: z.infer<typeof gallerySchema>) => {
+    const systemSize = data.systemSizeKw?.trim();
+    const duration = data.durationDays?.trim();
+    const installDateStr = data.installDate?.trim();
+    const payload = {
+      title: data.title,
+      slug: data.slug,
+      location: data.location || null,
+      description: data.description || null,
+      systemSizeKw: systemSize ? Number(systemSize) : null,
+      panelBrand: data.panelBrand?.trim() || null,
+      inverterBrand: data.inverterBrand?.trim() || null,
+      installDate: installDateStr || null,
+      durationDays: duration ? Math.trunc(Number(duration)) : null,
+      story: data.story?.trim() || null,
+      published: data.published,
+    };
+    if (payload.systemSizeKw !== null && Number.isNaN(payload.systemSizeKw)) {
+      toast({ title: "System size must be a number", variant: "destructive" });
+      return;
+    }
+    if (payload.durationDays !== null && Number.isNaN(payload.durationDays)) {
+      toast({ title: "Duration must be a whole number", variant: "destructive" });
+      return;
+    }
+    if (payload.installDate && Number.isNaN(new Date(payload.installDate).getTime())) {
+      toast({ title: "Install date is invalid", variant: "destructive" });
+      return;
+    }
     updateGallery.mutate(
-      { id, data },
+      { id, data: payload },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListGalleriesQueryKey() });
@@ -271,6 +319,98 @@ export default function GalleryEdit() {
                       </FormItem>
                     )}
                   />
+
+                  <div className="pt-4 border-t border-border">
+                    <h3 className="text-sm font-semibold text-foreground mb-3">Project Specs</h3>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField
+                          control={form.control}
+                          name="systemSizeKw"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>System size (kW)</FormLabel>
+                              <FormControl>
+                                <Input type="number" step="0.1" min="0" placeholder="e.g. 7.5" {...field} value={field.value || ""} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="durationDays"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Build (days)</FormLabel>
+                              <FormControl>
+                                <Input type="number" step="1" min="0" placeholder="e.g. 3" {...field} value={field.value || ""} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="panelBrand"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Panel brand</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. REC Alpha Pure 410W" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="inverterBrand"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Inverter brand</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. Enphase IQ8+" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="installDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Install date</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="story"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Project story</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                className="min-h-[160px]"
+                                placeholder="Tell the story of this install — challenges overcome, customer goals, anything notable. Markdown / line breaks are preserved."
+                                {...field}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
                   <FormField
                     control={form.control}
                     name="published"

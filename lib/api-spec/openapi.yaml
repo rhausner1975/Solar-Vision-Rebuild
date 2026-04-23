@@ -505,6 +505,12 @@ components:
         title: { type: string, minLength: 1, maxLength: 300 }
         description: { type: ["string", "null"], maxLength: 2000 }
         location: { type: ["string", "null"], maxLength: 200 }
+        systemSizeKw: { type: ["number", "null"], minimum: 0, maximum: 100000 }
+        panelBrand: { type: ["string", "null"], maxLength: 200 }
+        inverterBrand: { type: ["string", "null"], maxLength: 200 }
+        installDate: { type: ["string", "null"], format: date }
+        durationDays: { type: ["integer", "null"], minimum: 0, maximum: 100000 }
+        story: { type: ["string", "null"], maxLength: 20000 }
         published: { type: boolean }
       required: [slug, title, published]
     Gallery:
@@ -515,6 +521,12 @@ components:
         title: { type: string }
         description: { type: ["string", "null"] }
         location: { type: ["string", "null"] }
+        systemSizeKw: { type: ["number", "null"] }
+        panelBrand: { type: ["string", "null"] }
+        inverterBrand: { type: ["string", "null"] }
+        installDate: { type: ["string", "null"], format: date }
+        durationDays: { type: ["integer", "null"] }
+        story: { type: ["string", "null"] }
         published: { type: boolean }
         createdAt: { type: string, format: date-time }
       required: [id, slug, title, published, createdAt]
@@ -550,6 +562,12 @@ components:
         title: { type: string }
         description: { type: ["string", "null"] }
         location: { type: ["string", "null"] }
+        systemSizeKw: { type: ["number", "null"] }
+        panelBrand: { type: ["string", "null"] }
+        inverterBrand: { type: ["string", "null"] }
+        installDate: { type: ["string", "null"], format: date }
+        durationDays: { type: ["integer", "null"] }
+        story: { type: ["string", "null"] }
         published: { type: boolean }
         createdAt: { type: string, format: date-time }
         images:

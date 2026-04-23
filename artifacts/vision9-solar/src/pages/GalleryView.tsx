@@ -1,6 +1,17 @@
 import { Helmet } from "react-helmet-async";
 import { Link, useRoute } from "wouter";
-import { ArrowLeft, ChevronLeft, ChevronRight, X, Image as ImageIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Image as ImageIcon,
+  Zap,
+  PanelTop,
+  Cpu,
+  CalendarDays,
+  Hourglass,
+} from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { useGetPublicGallery, getGetPublicGalleryQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -66,6 +77,34 @@ export default function GalleryView() {
   const stripStart = Math.max(0, Math.min(currentIndex - 2, images.length - 5));
   const stripImages = images.slice(stripStart, stripStart + 5);
 
+  const specs: { icon: typeof Zap; label: string; value: string }[] = [];
+  if (gallery.systemSizeKw != null) {
+    specs.push({ icon: Zap, label: "System size", value: `${gallery.systemSizeKw} kW` });
+  }
+  if (gallery.panelBrand) {
+    specs.push({ icon: PanelTop, label: "Panels", value: gallery.panelBrand });
+  }
+  if (gallery.inverterBrand) {
+    specs.push({ icon: Cpu, label: "Inverter", value: gallery.inverterBrand });
+  }
+  if (gallery.installDate) {
+    const d = new Date(gallery.installDate);
+    if (!Number.isNaN(d.getTime())) {
+      specs.push({
+        icon: CalendarDays,
+        label: "Installed",
+        value: d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }),
+      });
+    }
+  }
+  if (gallery.durationDays != null) {
+    specs.push({
+      icon: Hourglass,
+      label: "Build time",
+      value: `${gallery.durationDays} ${gallery.durationDays === 1 ? "day" : "days"}`,
+    });
+  }
+
   return (
     <>
       <Helmet>
@@ -86,6 +125,46 @@ export default function GalleryView() {
           {gallery.description && <p className="text-secondary max-w-3xl text-lg">{gallery.description}</p>}
         </div>
       </section>
+
+      {(specs.length > 0 || gallery.story) && (
+        <section className="py-10 bg-background border-b border-border">
+          <div className="container mx-auto px-4">
+            <div className="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {specs.length > 0 && (
+                <aside className="lg:col-span-1">
+                  <div className="bg-muted/50 rounded-lg border border-border p-6">
+                    <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4">
+                      Project Specs
+                    </h2>
+                    <dl className="space-y-4">
+                      {specs.map((s) => {
+                        const Icon = s.icon;
+                        return (
+                          <div key={s.label} className="flex items-start gap-3">
+                            <Icon className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                            <div className="min-w-0">
+                              <dt className="text-xs text-secondary uppercase tracking-wide">{s.label}</dt>
+                              <dd className="text-foreground font-medium break-words">{s.value}</dd>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </dl>
+                  </div>
+                </aside>
+              )}
+              {gallery.story && (
+                <div className={specs.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}>
+                  <h2 className="text-2xl font-bold text-foreground mb-4">The Story</h2>
+                  <div className="text-secondary text-base leading-relaxed whitespace-pre-wrap">
+                    {gallery.story}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="py-12 min-h-[50vh] bg-background">
         <div className="container mx-auto px-4">
