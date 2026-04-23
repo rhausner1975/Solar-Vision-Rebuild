@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { TurnstileWidget, TURNSTILE_CONFIGURED } from "@/components/forms/TurnstileWidget";
 import {
   Select,
   SelectContent,
@@ -41,6 +43,9 @@ type EstimateFormValues = z.infer<typeof estimateSchema>;
 export default function Estimates() {
   const { toast } = useToast();
   const createEstimate = useCreateEstimateRequest();
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState("");
+  const mountedAtRef = useRef<number>(Date.now());
 
   const form = useForm<EstimateFormValues>({
     resolver: zodResolver(estimateSchema),
@@ -58,8 +63,23 @@ export default function Estimates() {
   });
 
   function onSubmit(data: EstimateFormValues) {
+    if (TURNSTILE_CONFIGURED && !captchaToken) {
+      toast({
+        title: "Verification needed",
+        description: "Please complete the human verification before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const payload = {
+      ...data,
+      turnstileToken: captchaToken,
+      website: honeypot,
+      formMountedAt: mountedAtRef.current,
+    };
     createEstimate.mutate(
-      { data },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { data: payload as any },
       {
         onSuccess: () => {
           toast({
@@ -218,7 +238,28 @@ export default function Estimates() {
                     )}
                   />
 
-                  <Button type="submit" size="lg" className="w-full font-bold rounded" disabled={createEstimate.isPending}>
+                  <input
+                    type="text"
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    aria-hidden="true"
+                    style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
+                  />
+
+                  <TurnstileWidget onToken={setCaptchaToken} />
+
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full font-bold rounded"
+                    disabled={
+                      createEstimate.isPending ||
+                      (TURNSTILE_CONFIGURED && !captchaToken)
+                    }
+                  >
                     {createEstimate.isPending ? "Submitting..." : "Submit Request"}
                   </Button>
                 </form>

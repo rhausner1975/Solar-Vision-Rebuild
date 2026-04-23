@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { TurnstileWidget, TURNSTILE_CONFIGURED } from "@/components/forms/TurnstileWidget";
 
 const contactSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
@@ -30,6 +32,9 @@ type ContactFormValues = z.infer<typeof contactSchema>;
 export default function Contact() {
   const { toast } = useToast();
   const createContact = useCreateContactSubmission();
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState("");
+  const mountedAtRef = useRef<number>(Date.now());
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactSchema),
@@ -43,8 +48,23 @@ export default function Contact() {
   });
 
   function onSubmit(data: ContactFormValues) {
+    if (TURNSTILE_CONFIGURED && !captchaToken) {
+      toast({
+        title: "Verification needed",
+        description: "Please complete the human verification before sending.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const payload = {
+      ...data,
+      turnstileToken: captchaToken,
+      website: honeypot,
+      formMountedAt: mountedAtRef.current,
+    };
     createContact.mutate(
-      { data },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { data: payload as any },
       {
         onSuccess: () => {
           toast({
@@ -165,7 +185,28 @@ export default function Contact() {
                     )}
                   />
 
-                  <Button type="submit" size="lg" className="w-full md:w-auto font-bold rounded" disabled={createContact.isPending}>
+                  <input
+                    type="text"
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    aria-hidden="true"
+                    style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
+                  />
+
+                  <TurnstileWidget onToken={setCaptchaToken} />
+
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full md:w-auto font-bold rounded"
+                    disabled={
+                      createContact.isPending ||
+                      (TURNSTILE_CONFIGURED && !captchaToken)
+                    }
+                  >
                     {createContact.isPending ? "Sending..." : "Send Message"}
                   </Button>
                 </form>
