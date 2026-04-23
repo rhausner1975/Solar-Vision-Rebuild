@@ -4,7 +4,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Phone, Mail, MapPin, CheckCircle2 } from "lucide-react";
-import { useCreateContactSubmission } from "@workspace/api-client-react";
+import { useMutation } from "@tanstack/react-query";
+import { submitContactSubmission } from "@/lib/publicForms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,7 +32,7 @@ type ContactFormValues = z.infer<typeof contactSchema>;
 
 export default function Contact() {
   const { toast } = useToast();
-  const createContact = useCreateContactSubmission();
+  const createContact = useMutation({ mutationFn: submitContactSubmission });
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
   const mountedAtRef = useRef<number>(Date.now());
@@ -56,15 +57,13 @@ export default function Contact() {
       });
       return;
     }
-    const payload = {
-      ...data,
-      turnstileToken: captchaToken,
-      website: honeypot,
-      formMountedAt: mountedAtRef.current,
-    };
     createContact.mutate(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { data: payload as any },
+      {
+        ...data,
+        turnstileToken: captchaToken,
+        website: honeypot,
+        formMountedAt: mountedAtRef.current,
+      },
       {
         onSuccess: () => {
           toast({

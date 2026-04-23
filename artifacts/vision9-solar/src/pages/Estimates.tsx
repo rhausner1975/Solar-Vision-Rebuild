@@ -4,7 +4,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { CheckCircle2 } from "lucide-react";
-import { useCreateEstimateRequest } from "@workspace/api-client-react";
+import { useMutation } from "@tanstack/react-query";
+import { submitEstimateRequest } from "@/lib/publicForms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,7 +43,7 @@ type EstimateFormValues = z.infer<typeof estimateSchema>;
 
 export default function Estimates() {
   const { toast } = useToast();
-  const createEstimate = useCreateEstimateRequest();
+  const createEstimate = useMutation({ mutationFn: submitEstimateRequest });
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
   const mountedAtRef = useRef<number>(Date.now());
@@ -71,15 +72,13 @@ export default function Estimates() {
       });
       return;
     }
-    const payload = {
-      ...data,
-      turnstileToken: captchaToken,
-      website: honeypot,
-      formMountedAt: mountedAtRef.current,
-    };
     createEstimate.mutate(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { data: payload as any },
+      {
+        ...data,
+        turnstileToken: captchaToken,
+        website: honeypot,
+        formMountedAt: mountedAtRef.current,
+      },
       {
         onSuccess: () => {
           toast({
