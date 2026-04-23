@@ -5,9 +5,10 @@ const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
 interface TurnstileWidgetProps {
   onToken: (token: string | null) => void;
+  resetKey?: number;
 }
 
-export function TurnstileWidget({ onToken }: TurnstileWidgetProps) {
+export function TurnstileWidget({ onToken, resetKey }: TurnstileWidgetProps) {
   if (!SITE_KEY) {
     return (
       <div className="flex items-start gap-2 text-sm text-destructive border border-destructive/30 bg-destructive/5 rounded p-3">
@@ -21,6 +22,7 @@ export function TurnstileWidget({ onToken }: TurnstileWidgetProps) {
   }
   return (
     <Turnstile
+      key={resetKey ?? 0}
       siteKey={SITE_KEY}
       options={{ theme: "light" }}
       onSuccess={(token) => onToken(token)}

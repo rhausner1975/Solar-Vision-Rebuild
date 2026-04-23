@@ -35,7 +35,16 @@ export default function Contact() {
   const createContact = useMutation({ mutationFn: submitContactSubmission });
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
+  const [widgetResetKey, setWidgetResetKey] = useState(0);
   const mountedAtRef = useRef<number>(Date.now());
+
+  function resetForAnotherSubmission() {
+    createContact.reset();
+    setCaptchaToken(null);
+    setHoneypot("");
+    setWidgetResetKey((k) => k + 1);
+    mountedAtRef.current = Date.now();
+  }
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactSchema),
@@ -107,7 +116,7 @@ export default function Contact() {
                 <CheckCircle2 className="h-12 w-12 text-primary mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-foreground mb-2">Message Sent Successfully!</h3>
                 <p className="text-secondary mb-6">Thank you for reaching out. A member of our team will contact you shortly.</p>
-                <Button onClick={() => createContact.reset()} variant="outline">Send Another Message</Button>
+                <Button onClick={resetForAnotherSubmission} variant="outline">Send Another Message</Button>
               </div>
             ) : (
               <Form {...form}>
@@ -195,7 +204,7 @@ export default function Contact() {
                     style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
                   />
 
-                  <TurnstileWidget onToken={setCaptchaToken} />
+                  <TurnstileWidget onToken={setCaptchaToken} resetKey={widgetResetKey} />
 
                   <Button
                     type="submit"
@@ -203,7 +212,8 @@ export default function Contact() {
                     className="w-full md:w-auto font-bold rounded"
                     disabled={
                       createContact.isPending ||
-                      (TURNSTILE_CONFIGURED && !captchaToken)
+                      !TURNSTILE_CONFIGURED ||
+                      !captchaToken
                     }
                   >
                     {createContact.isPending ? "Sending..." : "Send Message"}

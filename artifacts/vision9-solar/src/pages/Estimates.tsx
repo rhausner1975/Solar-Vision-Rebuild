@@ -46,7 +46,16 @@ export default function Estimates() {
   const createEstimate = useMutation({ mutationFn: submitEstimateRequest });
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
+  const [widgetResetKey, setWidgetResetKey] = useState(0);
   const mountedAtRef = useRef<number>(Date.now());
+
+  function resetForAnotherSubmission() {
+    createEstimate.reset();
+    setCaptchaToken(null);
+    setHoneypot("");
+    setWidgetResetKey((k) => k + 1);
+    mountedAtRef.current = Date.now();
+  }
 
   const form = useForm<EstimateFormValues>({
     resolver: zodResolver(estimateSchema),
@@ -119,7 +128,7 @@ export default function Estimates() {
               <CheckCircle2 className="h-16 w-16 text-primary mx-auto mb-6" />
               <h2 className="text-2xl font-bold text-foreground mb-3">Request Submitted Successfully!</h2>
               <p className="text-secondary text-lg mb-8">Thank you for your interest. A solar engineer will review your project details and contact you shortly.</p>
-              <Button onClick={() => createEstimate.reset()} variant="outline" size="lg">Submit Another Request</Button>
+              <Button onClick={resetForAnotherSubmission} variant="outline" size="lg">Submit Another Request</Button>
             </div>
           ) : (
             <div className="bg-background border border-border rounded-lg shadow-sm p-6 md:p-8">
@@ -248,7 +257,7 @@ export default function Estimates() {
                     style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
                   />
 
-                  <TurnstileWidget onToken={setCaptchaToken} />
+                  <TurnstileWidget onToken={setCaptchaToken} resetKey={widgetResetKey} />
 
                   <Button
                     type="submit"
@@ -256,7 +265,8 @@ export default function Estimates() {
                     className="w-full font-bold rounded"
                     disabled={
                       createEstimate.isPending ||
-                      (TURNSTILE_CONFIGURED && !captchaToken)
+                      !TURNSTILE_CONFIGURED ||
+                      !captchaToken
                     }
                   >
                     {createEstimate.isPending ? "Submitting..." : "Submit Request"}
