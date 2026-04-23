@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
-import { Plus, Edit2, Trash2, RefreshCw, Loader2 } from "lucide-react";
+import { Plus, Edit2, Trash2, RefreshCw, Loader2, ImageOff } from "lucide-react";
+import { imageVariantUrl } from "@/lib/galleryImage";
 import {
   useListGalleries,
   useCreateGallery,
@@ -48,6 +49,37 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+
+function MissingImageThumbnail({
+  objectPath,
+  alt,
+}: {
+  objectPath: string;
+  alt: string;
+}) {
+  const [errored, setErrored] = useState(false);
+  return (
+    <div className="h-12 w-12 shrink-0 overflow-hidden rounded border border-border bg-muted flex items-center justify-center">
+      {errored ? (
+        <ImageOff
+          className="h-5 w-5 text-muted-foreground"
+          aria-label="Preview unavailable"
+          data-testid={`thumb-missing-${objectPath}`}
+        />
+      ) : (
+        <img
+          src={imageVariantUrl(objectPath, "full")}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover"
+          onError={() => setErrored(true)}
+          data-testid={`thumb-image-${objectPath}`}
+        />
+      )}
+    </div>
+  );
+}
 
 export default function GalleriesAdmin() {
   const { data: galleries, isLoading } = useListGalleries();
@@ -336,14 +368,22 @@ export default function GalleriesAdmin() {
                                   data-testid={`row-missing-image-${img.id}`}
                                 >
                                   <TableCell className="font-medium max-w-[260px]">
-                                    <div className="truncate" title={label}>
-                                      {label}
-                                    </div>
-                                    <div
-                                      className="text-xs text-muted-foreground truncate"
-                                      title={img.objectPath}
-                                    >
-                                      {img.objectPath}
+                                    <div className="flex items-center gap-3">
+                                      <MissingImageThumbnail
+                                        objectPath={img.objectPath}
+                                        alt={label}
+                                      />
+                                      <div className="min-w-0">
+                                        <div className="truncate" title={label}>
+                                          {label}
+                                        </div>
+                                        <div
+                                          className="text-xs text-muted-foreground truncate"
+                                          title={img.objectPath}
+                                        >
+                                          {img.objectPath}
+                                        </div>
+                                      </div>
                                     </div>
                                   </TableCell>
                                   <TableCell>
