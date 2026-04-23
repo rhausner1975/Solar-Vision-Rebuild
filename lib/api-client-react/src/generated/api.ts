@@ -36,6 +36,7 @@ import type {
   HealthStatus,
   ImageVariantsStatus,
   LoginInput,
+  NotificationLogEntry,
   NotificationSettings,
   NotificationSettingsInput,
   RequestPasswordResetInput,
@@ -2509,6 +2510,81 @@ export const useSendTestNotificationSms = <
 > => {
   return useMutation(getSendTestNotificationSmsMutationOptions(options));
 };
+
+/**
+ * @summary List recent notification send attempts
+ */
+export const getGetNotificationLogUrl = () => {
+  return `/api/admin/notification-log`;
+};
+
+export const getNotificationLog = async (
+  options?: RequestInit,
+): Promise<NotificationLogEntry[]> => {
+  return customFetch<NotificationLogEntry[]>(getGetNotificationLogUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetNotificationLogQueryKey = () => {
+  return [`/api/admin/notification-log`] as const;
+};
+
+export const getGetNotificationLogQueryOptions = <
+  TData = Awaited<ReturnType<typeof getNotificationLog>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getNotificationLog>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetNotificationLogQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getNotificationLog>>
+  > = ({ signal }) => getNotificationLog({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getNotificationLog>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetNotificationLogQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getNotificationLog>>
+>;
+export type GetNotificationLogQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List recent notification send attempts
+ */
+
+export function useGetNotificationLog<
+  TData = Awaited<ReturnType<typeof getNotificationLog>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getNotificationLog>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetNotificationLogQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get a presigned upload URL

@@ -590,6 +590,24 @@ export const SendTestNotificationSmsResponse = zod.object({
 });
 
 /**
+ * @summary List recent notification send attempts
+ */
+export const GetNotificationLogResponseItem = zod.object({
+  id: zod.number(),
+  channel: zod.enum(["email", "sms"]),
+  recipients: zod.array(zod.string()),
+  subject: zod.string().nullish(),
+  relatedKind: zod.string().nullish(),
+  relatedId: zod.number().nullish(),
+  status: zod.enum(["success", "failed"]),
+  errorMessage: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const GetNotificationLogResponse = zod.array(
+  GetNotificationLogResponseItem,
+);
+
+/**
  * @summary Get a presigned upload URL
  */
 export const RequestUploadUrlBody = zod.object({

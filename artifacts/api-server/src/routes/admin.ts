@@ -8,6 +8,7 @@ import {
   galleriesTable,
   galleryImagesTable,
   notificationSettingsTable,
+  notificationLogTable,
 } from "@workspace/db";
 import {
   AdminLoginBody,
@@ -592,5 +593,26 @@ router.post(
     res.json(result);
   },
 );
+
+router.get("/admin/notification-log", requireAdmin, async (_req, res): Promise<void> => {
+  const rows = await db
+    .select()
+    .from(notificationLogTable)
+    .orderBy(desc(notificationLogTable.createdAt))
+    .limit(50);
+  res.json(
+    rows.map((r) => ({
+      id: r.id,
+      channel: r.channel,
+      recipients: r.recipients,
+      subject: r.subject,
+      relatedKind: r.relatedKind,
+      relatedId: r.relatedId,
+      status: r.status,
+      errorMessage: r.errorMessage,
+      createdAt: r.createdAt,
+    })),
+  );
+});
 
 export default router;

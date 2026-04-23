@@ -3,13 +3,14 @@ import { Helmet } from "react-helmet-async";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, XCircle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetNotificationSettings,
   useUpdateNotificationSettings,
   useSendTestNotification,
   useSendTestNotificationSms,
+  useGetNotificationLog,
   getGetNotificationSettingsQueryKey,
 } from "@workspace/api-client-react";
 import { Send, MessageSquare } from "lucide-react";
@@ -38,6 +39,19 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+function formatDateTime(value: string | Date): string {
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString();
+}
+
+function relatedLabel(kind: string | null | undefined, id: number | null | undefined): string {
+  if (!kind) return "-";
+  const label =
+    kind === "contact" ? "Contact submission" : kind === "estimate" ? "Estimate request" : kind;
+  return id ? `${label} #${id}` : label;
+}
+
 export default function NotificationSettings() {
   const { data, isLoading } = useGetNotificationSettings();
   const update = useUpdateNotificationSettings();
@@ -46,6 +60,7 @@ export default function NotificationSettings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [hydrated, setHydrated] = useState(false);
+  const { data: logEntries, isLoading: isLoadingLog } = useGetNotificationLog();
 
   function handleSendTest() {
     sendTest.mutate(undefined, {
@@ -161,7 +176,7 @@ export default function NotificationSettings() {
         <title>Notification Settings | Admin</title>
       </Helmet>
 
-      <div className="p-6 md:p-8 max-w-2xl space-y-6">
+      <div className="p-6 md:p-8 max-w-4xl space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Notification Settings</h1>
           <p className="text-secondary">
@@ -169,7 +184,7 @@ export default function NotificationSettings() {
           </p>
         </div>
 
-        <div className="bg-background rounded-lg border border-border shadow-sm p-6">
+        <div className="bg-background rounded-lg border border-border shadow-sm p-6 max-w-2xl">
           <h2 className="text-xl font-bold text-foreground mb-6 border-b pb-2">Recipients</h2>
 
           {isLoading ? (
@@ -252,6 +267,82 @@ export default function NotificationSettings() {
                 </p>
               </form>
             </Form>
+          )}
+        </div>
+
+        <div className="bg-background rounded-lg border border-border shadow-sm p-6">
+          <div className="flex items-baseline justify-between mb-6 border-b pb-2">
+            <h2 className="text-xl font-bold text-foreground">Recent notifications</h2>
+            <span className="text-xs text-secondary">Last 50 send attempts</span>
+          </div>
+
+          {isLoadingLog ? (
+            <div className="text-secondary">Loading...</div>
+          ) : !logEntries || logEntries.length === 0 ? (
+            <div className="text-secondary text-sm">
+              No notification attempts have been recorded yet. New leads will appear here.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs uppercase text-secondary border-b border-border">
+                    <th className="py-2 pr-3 font-semibold">When</th>
+                    <th className="py-2 pr-3 font-semibold">Channel</th>
+                    <th className="py-2 pr-3 font-semibold">Recipients</th>
+                    <th className="py-2 pr-3 font-semibold">Lead</th>
+                    <th className="py-2 pr-3 font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logEntries.map((entry) => {
+                    const failed = entry.status === "failed";
+                    return (
+                      <tr
+                        key={entry.id}
+                        className={
+                          "border-b border-border align-top " +
+                          (failed ? "bg-red-50 dark:bg-red-950/30" : "")
+                        }
+                      >
+                        <td className="py-3 pr-3 whitespace-nowrap">
+                          {formatDateTime(entry.createdAt)}
+                        </td>
+                        <td className="py-3 pr-3 capitalize">{entry.channel}</td>
+                        <td className="py-3 pr-3">
+                          {entry.recipients && entry.recipients.length > 0
+                            ? entry.recipients.join(", ")
+                            : "-"}
+                        </td>
+                        <td className="py-3 pr-3 whitespace-nowrap">
+                          {relatedLabel(entry.relatedKind, entry.relatedId)}
+                        </td>
+                        <td className="py-3 pr-3">
+                          {failed ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="inline-flex items-center gap-1 text-red-700 dark:text-red-300 font-medium">
+                                <XCircle className="h-4 w-4" />
+                                Failed
+                              </span>
+                              {entry.errorMessage ? (
+                                <span className="text-xs text-red-700 dark:text-red-300 break-words max-w-md">
+                                  {entry.errorMessage}
+                                </span>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-green-700 dark:text-green-400 font-medium">
+                              <CheckCircle2 className="h-4 w-4" />
+                              Delivered
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

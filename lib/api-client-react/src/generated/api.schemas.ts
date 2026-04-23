@@ -407,6 +407,38 @@ export interface BackfillImageVariantsResult {
   failed: number;
 }
 
+export type NotificationLogEntryChannel =
+  (typeof NotificationLogEntryChannel)[keyof typeof NotificationLogEntryChannel];
+
+export const NotificationLogEntryChannel = {
+  email: "email",
+  sms: "sms",
+} as const;
+
+export type NotificationLogEntryStatus =
+  (typeof NotificationLogEntryStatus)[keyof typeof NotificationLogEntryStatus];
+
+export const NotificationLogEntryStatus = {
+  success: "success",
+  failed: "failed",
+} as const;
+
+export interface NotificationLogEntry {
+  id: number;
+  channel: NotificationLogEntryChannel;
+  recipients: string[];
+  /** @nullable */
+  subject?: string | null;
+  /** @nullable */
+  relatedKind?: string | null;
+  /** @nullable */
+  relatedId?: number | null;
+  status: NotificationLogEntryStatus;
+  /** @nullable */
+  errorMessage?: string | null;
+  createdAt: string;
+}
+
 export interface RequestUploadUrlBody {
   name: string;
   size: number;

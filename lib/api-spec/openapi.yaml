@@ -488,6 +488,20 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/TestSmsNotificationResult" }
 
+  /admin/notification-log:
+    get:
+      operationId: getNotificationLog
+      tags: [admin]
+      summary: List recent notification send attempts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/NotificationLogEntry" }
+
   /storage/uploads/request-url:
     post:
       operationId: requestUploadUrl
@@ -756,6 +770,22 @@ components:
         generated: { type: integer }
         failed: { type: integer }
       required: [total, processed, generated, failed]
+
+    NotificationLogEntry:
+      type: object
+      properties:
+        id: { type: integer }
+        channel: { type: string, enum: [email, sms] }
+        recipients:
+          type: array
+          items: { type: string }
+        subject: { type: ["string", "null"] }
+        relatedKind: { type: ["string", "null"] }
+        relatedId: { type: ["integer", "null"] }
+        status: { type: string, enum: [success, failed] }
+        errorMessage: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+      required: [id, channel, recipients, status, createdAt]
 
     RequestUploadUrlBody:
       type: object

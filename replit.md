@@ -17,7 +17,8 @@ A faithful rebuild of vision9solar.com on the Replit pnpm-monorepo template.
 `/admin/login`, `/admin`, `/admin/contact`, `/admin/estimates`, `/admin/galleries`, `/admin/galleries/:id`, `/admin/account`
 
 ## Backend
-- Postgres via `@workspace/db` (Drizzle). Tables: `admin_users`, `admin_sessions`, `contact_submissions`, `estimate_requests`, `galleries`, `gallery_images`.
+- Postgres via `@workspace/db` (Drizzle). Tables: `admin_users`, `admin_sessions`, `contact_submissions`, `estimate_requests`, `galleries`, `gallery_images`, `notification_settings`, `notification_log`.
+- `notification_log` records every outgoing email/SMS attempt (channel, recipients, related lead, success/failure + error message) and powers the "Recent notifications" panel on `/admin/notifications`.
 - Auth: Argon2id password hashing, HTTP-only session cookie `v9_admin_session` (7-day TTL). `requireAdmin` middleware enforces session **and** rejects any privileged call when `mustChangePassword=true` (only `/admin/password` is allowed during forced rotation).
 - Password change revokes all *other* sessions for that user.
 - Initial admin seeded on boot from `ADMIN_USERNAME` + `ADMIN_INITIAL_PASSWORD` env secrets, with `mustChangePassword=true`.

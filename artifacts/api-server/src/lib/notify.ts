@@ -5,6 +5,7 @@ import {
   contactSubmissionsTable,
   estimateRequestsTable,
   notificationSettingsTable,
+  notificationLogTable,
 } from "@workspace/db";
 import { logger } from "./logger";
 
@@ -26,6 +27,11 @@ export interface DeliveryOutcome {
   status: DeliveryStatus;
   error?: string;
   sentAt?: Date;
+}
+
+interface RelatedRef {
+  kind: "contact" | "estimate" | "test";
+  id?: number | null;
 }
 
 function sanitizeHeader(value: string): string {
@@ -64,16 +70,40 @@ async function getRecipients(): Promise<string[]> {
   return [FALLBACK_TO];
 }
 
+async function recordAttempt(params: {
+  channel: "email" | "sms";
+  recipients: string[];
+  subject: string | null;
+  related: RelatedRef;
+  status: "success" | "failed";
+  errorMessage: string | null;
+}): Promise<void> {
+  try {
+    await db.insert(notificationLogTable).values({
+      channel: params.channel,
+      recipients: params.recipients,
+      subject: params.subject,
+      relatedKind: params.related.kind,
+      relatedId: params.related.id ?? null,
+      status: params.status,
+      errorMessage: params.errorMessage,
+    });
+  } catch (err) {
+    logger.error({ err }, "Failed to record notification log entry");
+  }
+}
+
 async function deliverEmail(
   subject: string,
   body: string,
+  related: RelatedRef,
   overrideRecipients?: string[],
 ): Promise<DeliveryOutcome> {
+  const recipients =
+    overrideRecipients && overrideRecipients.length > 0
+      ? overrideRecipients
+      : await getRecipients();
   try {
-    const recipients =
-      overrideRecipients && overrideRecipients.length > 0
-        ? overrideRecipients
-        : await getRecipients();
     const toHeader = recipients.join(", ");
     const raw = base64UrlEncode(buildRfc822(toHeader, subject, body));
     const response = await connectors.proxy(
@@ -87,14 +117,37 @@ async function deliverEmail(
     );
     if (!response.ok) {
       const text = await response.text().catch(() => "");
-      return {
+      const error = `Gmail ${response.status}: ${text.slice(0, 500)}`;
+      await recordAttempt({
+        channel: "email",
+        recipients,
+        subject,
+        related,
         status: "failed",
-        error: `Gmail ${response.status}: ${text.slice(0, 500)}`,
-      };
+        errorMessage: error.slice(0, 2000),
+      });
+      return { status: "failed", error };
     }
+    await recordAttempt({
+      channel: "email",
+      recipients,
+      subject,
+      related,
+      status: "success",
+      errorMessage: null,
+    });
     return { status: "sent", sentAt: new Date() };
   } catch (err) {
-    return { status: "failed", error: err instanceof Error ? err.message : String(err) };
+    const error = err instanceof Error ? err.message : String(err);
+    await recordAttempt({
+      channel: "email",
+      recipients,
+      subject,
+      related,
+      status: "failed",
+      errorMessage: error.slice(0, 2000),
+    });
+    return { status: "failed", error };
   }
 }
 
@@ -114,7 +167,7 @@ export async function sendTestNotificationEmail(): Promise<{
     `Recipients on this test: ${recipients.join(", ")}`,
     `Sent at: ${new Date().toISOString()}`,
   ].join("\n");
-  const outcome = await deliverEmail(subject, body, recipients);
+  const outcome = await deliverEmail(subject, body, { kind: "test", id: null }, recipients);
   if (outcome.status === "sent") {
     logger.info({ recipients }, "Sent test notification email");
     return { delivered: true, recipients };
@@ -126,7 +179,7 @@ export async function sendTestNotificationEmail(): Promise<{
   return { delivered: false, recipients, error: outcome.error ?? "Unknown error" };
 }
 
-async function sendSms(message: string): Promise<DeliveryOutcome> {
+async function sendSms(message: string, related: RelatedRef): Promise<DeliveryOutcome> {
   if (!NOTIFY_SMS_TO || !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
     return {
       status: "skipped",
@@ -156,11 +209,37 @@ async function sendSms(message: string): Promise<DeliveryOutcome> {
     });
     if (!response.ok) {
       const text = await response.text().catch(() => "");
-      return { status: "failed", error: `Twilio ${response.status}: ${text.slice(0, 500)}` };
+      const error = `Twilio ${response.status}: ${text.slice(0, 500)}`;
+      await recordAttempt({
+        channel: "sms",
+        recipients: [NOTIFY_SMS_TO],
+        subject: null,
+        related,
+        status: "failed",
+        errorMessage: error.slice(0, 2000),
+      });
+      return { status: "failed", error };
     }
+    await recordAttempt({
+      channel: "sms",
+      recipients: [NOTIFY_SMS_TO],
+      subject: null,
+      related,
+      status: "success",
+      errorMessage: null,
+    });
     return { status: "sent", sentAt: new Date() };
   } catch (err) {
-    return { status: "failed", error: err instanceof Error ? err.message : String(err) };
+    const error = err instanceof Error ? err.message : String(err);
+    await recordAttempt({
+      channel: "sms",
+      recipients: [NOTIFY_SMS_TO],
+      subject: null,
+      related,
+      status: "failed",
+      errorMessage: error.slice(0, 2000),
+    });
+    return { status: "failed", error };
   }
 }
 
@@ -349,9 +428,10 @@ async function dispatch(
   email: { subject: string; body: string },
   sms: string,
 ): Promise<{ email?: DeliveryOutcome; sms?: DeliveryOutcome }> {
+  const related: RelatedRef = { kind, id };
   const result: { email?: DeliveryOutcome; sms?: DeliveryOutcome } = {};
   if (channels.includes("email")) {
-    const outcome = await deliverEmail(email.subject, email.body);
+    const outcome = await deliverEmail(email.subject, email.body, related);
     result.email = outcome;
     await persistOutcome(kind, id, "email", outcome);
     if (outcome.status === "failed") {
@@ -359,7 +439,7 @@ async function dispatch(
     }
   }
   if (channels.includes("sms")) {
-    const outcome = await sendSms(sms);
+    const outcome = await sendSms(sms, related);
     result.sms = outcome;
     await persistOutcome(kind, id, "sms", outcome);
     if (outcome.status === "failed") {
