@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
-import { Plus, Edit2, Trash2, RefreshCw, Loader2, ImageOff } from "lucide-react";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  RefreshCw,
+  Loader2,
+  ImageOff,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { imageVariantUrl } from "@/lib/galleryImage";
 import {
   useListGalleries,
@@ -53,62 +62,139 @@ import { Badge } from "@/components/ui/badge";
 function MissingImageThumbnail({
   objectPath,
   alt,
+  onOpen,
 }: {
   objectPath: string;
   alt: string;
+  onOpen: () => void;
 }) {
   const [errored, setErrored] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
   const fullSrc = imageVariantUrl(objectPath, "full");
+  if (errored) {
+    return (
+      <div className="h-12 w-12 shrink-0 overflow-hidden rounded border border-border bg-muted flex items-center justify-center">
+        <ImageOff
+          className="h-5 w-5 text-muted-foreground"
+          aria-label="Preview unavailable"
+          data-testid={`thumb-missing-${objectPath}`}
+        />
+      </div>
+    );
+  }
   return (
-    <>
-      {errored ? (
-        <div className="h-12 w-12 shrink-0 overflow-hidden rounded border border-border bg-muted flex items-center justify-center">
-          <ImageOff
-            className="h-5 w-5 text-muted-foreground"
-            aria-label="Preview unavailable"
-            data-testid={`thumb-missing-${objectPath}`}
-          />
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setLightboxOpen(true)}
-          className="h-12 w-12 shrink-0 overflow-hidden rounded border border-border bg-muted flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          aria-label={`Preview ${alt} at full size`}
-          data-testid={`button-thumb-${objectPath}`}
-        >
+    <button
+      type="button"
+      onClick={onOpen}
+      className="h-12 w-12 shrink-0 overflow-hidden rounded border border-border bg-muted flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      aria-label={`Preview ${alt} at full size`}
+      data-testid={`button-thumb-${objectPath}`}
+    >
+      <img
+        src={fullSrc}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        className="h-full w-full object-cover"
+        onError={() => setErrored(true)}
+        data-testid={`thumb-image-${objectPath}`}
+      />
+    </button>
+  );
+}
+
+function MissingImagesLightbox({
+  items,
+  index,
+  onIndexChange,
+  onClose,
+}: {
+  items: { objectPath: string; alt: string }[];
+  index: number | null;
+  onIndexChange: (i: number) => void;
+  onClose: () => void;
+}) {
+  const open = index !== null && index >= 0 && index < items.length;
+  const current = open ? items[index!] : null;
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        onIndexChange((index! - 1 + items.length) % items.length);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        onIndexChange((index! + 1) % items.length);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, index, items.length, onIndexChange]);
+
+  if (!current) return null;
+  const fullSrc = imageVariantUrl(current.objectPath, "full");
+  const goPrev = () =>
+    onIndexChange((index! - 1 + items.length) % items.length);
+  const goNext = () => onIndexChange((index! + 1) % items.length);
+  const multiple = items.length > 1;
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
+      <DialogContent
+        className="max-w-4xl p-2 sm:p-4 bg-background"
+        data-testid="lightbox-missing-variants"
+      >
+        <DialogHeader className="sr-only">
+          <DialogTitle>{current.alt}</DialogTitle>
+          <DialogDescription>{current.objectPath}</DialogDescription>
+        </DialogHeader>
+        <div className="relative flex items-center justify-center max-h-[80vh] overflow-hidden">
           <img
             src={fullSrc}
-            alt={alt}
-            loading="lazy"
-            decoding="async"
-            className="h-full w-full object-cover"
-            onError={() => setErrored(true)}
-            data-testid={`thumb-image-${objectPath}`}
+            alt={current.alt}
+            className="max-h-[80vh] w-auto h-auto object-contain"
+            data-testid={`lightbox-image-${current.objectPath}`}
           />
-        </button>
-      )}
-      <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent
-          className="max-w-4xl p-2 sm:p-4 bg-background"
-          data-testid={`lightbox-${objectPath}`}
+          {multiple && (
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full opacity-90"
+                onClick={goPrev}
+                aria-label="Previous image"
+                data-testid="button-lightbox-prev"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full opacity-90"
+                onClick={goNext}
+                aria-label="Next image"
+                data-testid="button-lightbox-next"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </>
+          )}
+        </div>
+        <div
+          className="mt-2 text-center text-sm text-muted-foreground"
+          data-testid="text-lightbox-counter"
         >
-          <DialogHeader className="sr-only">
-            <DialogTitle>{alt}</DialogTitle>
-            <DialogDescription>{objectPath}</DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-center max-h-[80vh] overflow-hidden">
-            <img
-              src={fullSrc}
-              alt={alt}
-              className="max-h-[80vh] w-auto h-auto object-contain"
-              data-testid={`lightbox-image-${objectPath}`}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          {index! + 1} of {items.length}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -133,6 +219,23 @@ export default function GalleriesAdmin() {
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [activeJobForce, setActiveJobForce] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const lightboxItems = (missingImages.data ?? []).map((img) => ({
+    objectPath: img.objectPath,
+    alt:
+      img.caption?.trim() ||
+      img.altText?.trim() ||
+      img.objectPath.split("/").pop() ||
+      img.objectPath,
+  }));
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    if (lightboxIndex >= lightboxItems.length) {
+      setLightboxIndex(lightboxItems.length > 0 ? lightboxItems.length - 1 : null);
+    }
+  }, [lightboxIndex, lightboxItems.length]);
 
   const invalidateVariantQueries = () => {
     queryClient.invalidateQueries({ queryKey: getGetImageVariantsStatusQueryKey() });
@@ -306,7 +409,13 @@ export default function GalleriesAdmin() {
                       ? `All ${status.totalImages} images have WebP variants.`
                       : `${status.missingThumb} of ${status.totalImages} images missing thumb · ${status.missingMedium} of ${status.totalImages} missing medium WebP variants.`;
               return (
-                <Dialog open={missingDialogOpen} onOpenChange={setMissingDialogOpen}>
+                <Dialog
+                  open={missingDialogOpen}
+                  onOpenChange={(open) => {
+                    setMissingDialogOpen(open);
+                    if (!open) setLightboxIndex(null);
+                  }}
+                >
                   {hasMissing ? (
                     <DialogTrigger asChild>
                       <button
@@ -387,7 +496,7 @@ export default function GalleriesAdmin() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {missingImages.data.map((img) => {
+                            {missingImages.data.map((img, idx) => {
                               const label =
                                 img.caption?.trim() ||
                                 img.altText?.trim() ||
@@ -403,6 +512,7 @@ export default function GalleriesAdmin() {
                                       <MissingImageThumbnail
                                         objectPath={img.objectPath}
                                         alt={label}
+                                        onOpen={() => setLightboxIndex(idx)}
                                       />
                                       <div className="min-w-0">
                                         <div className="truncate" title={label}>
@@ -462,6 +572,12 @@ export default function GalleriesAdmin() {
                         </Table>
                       )}
                     </div>
+                    <MissingImagesLightbox
+                      items={lightboxItems}
+                      index={lightboxIndex}
+                      onIndexChange={setLightboxIndex}
+                      onClose={() => setLightboxIndex(null)}
+                    />
                   </DialogContent>
                 </Dialog>
               );
