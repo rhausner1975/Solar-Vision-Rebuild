@@ -36,6 +36,8 @@ After codegen, `lib/api-zod/src/index.ts` must be `export * from "./generated/ap
 ## Required secrets
 - `ADMIN_USERNAME`, `ADMIN_INITIAL_PASSWORD` (admin seed)
 - `DATABASE_URL`, `DEFAULT_OBJECT_STORAGE_BUCKET_ID`, `PRIVATE_OBJECT_DIR`, `PUBLIC_OBJECT_SEARCH_PATHS` (provisioned)
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `NOTIFY_SMS_TO` (SMS lead alerts via Twilio REST; missing vars cause SMS to be skipped with a warning, never blocks the form response)
+- `NOTIFY_EMAIL_TO` (optional override; defaults to `info@vision9.biz`)
 
 ## Contact (matches the real business)
 613 813 4305 · info@vision9.biz · Marmora ON K0K 2M0 · Kirkland Lake ON P2N 3C8
