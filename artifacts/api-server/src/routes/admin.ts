@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, isNull, sql } from "drizzle-orm";
 import {
   db,
   adminUsersTable,
@@ -9,6 +9,7 @@ import {
   galleryImagesTable,
   notificationSettingsTable,
   notificationLogTable,
+  inAppNotificationsTable,
 } from "@workspace/db";
 import {
   AdminLoginBody,
@@ -59,6 +60,7 @@ import {
   resendEstimateNotification,
   sendTestNotificationEmail,
   sendTestNotificationSms,
+  sendTestInAppNotification,
   type Channel,
 } from "../lib/notify";
 
@@ -730,5 +732,40 @@ router.get("/admin/notification-log", requireAdmin, async (_req, res): Promise<v
     })),
   );
 });
+
+router.post(
+  "/admin/notification-settings/test-in-app",
+  requireAdmin,
+  async (_req, res): Promise<void> => {
+    const result = await sendTestInAppNotification();
+    res.json(result);
+  },
+);
+
+router.get("/admin/in-app-notifications", requireAdmin, async (_req, res): Promise<void> => {
+  const rows = await db
+    .select()
+    .from(inAppNotificationsTable)
+    .orderBy(desc(inAppNotificationsTable.createdAt))
+    .limit(50);
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(inAppNotificationsTable)
+    .where(isNull(inAppNotificationsTable.readAt));
+  res.json({ items: rows, unreadCount: Number(count) });
+});
+
+router.post(
+  "/admin/in-app-notifications/mark-all-read",
+  requireAdmin,
+  async (_req, res): Promise<void> => {
+    await db
+      .update(inAppNotificationsTable)
+      .set({ readAt: new Date() })
+      .where(isNull(inAppNotificationsTable.readAt));
+    res.status(204).end();
+  },
+);
+
 
 export default router;

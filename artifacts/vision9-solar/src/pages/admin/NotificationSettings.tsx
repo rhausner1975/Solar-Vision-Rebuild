@@ -11,9 +11,11 @@ import {
   useSendTestNotification,
   useSendTestNotificationSms,
   useGetNotificationLog,
+  useSendTestNotificationInApp,
   getGetNotificationSettingsQueryKey,
+  getListInAppNotificationsQueryKey,
 } from "@workspace/api-client-react";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -64,6 +66,7 @@ export default function NotificationSettings() {
   const update = useUpdateNotificationSettings();
   const sendTest = useSendTestNotification();
   const sendTestSms = useSendTestNotificationSms();
+  const sendTestInApp = useSendTestNotificationInApp();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [hydrated, setHydrated] = useState(false);
@@ -101,6 +104,35 @@ export default function NotificationSettings() {
         toast({
           title: "Could not send test email",
           description: "The request failed before the email could be sent.",
+          variant: "destructive",
+        });
+      },
+    });
+  }
+
+  function handleSendTestInApp() {
+    sendTestInApp.mutate(undefined, {
+      onSuccess: (result) => {
+        if (result.delivered) {
+          queryClient.invalidateQueries({ queryKey: getListInAppNotificationsQueryKey() });
+          toast({
+            title: "Test in-app alert created",
+            description:
+              "Open the bell icon in the admin sidebar to confirm it shows up.",
+          });
+        } else {
+          toast({
+            title: "Test in-app alert failed",
+            description:
+              result.error ?? "The server could not store the test in-app alert.",
+            variant: "destructive",
+          });
+        }
+      },
+      onError: () => {
+        toast({
+          title: "Could not send test in-app alert",
+          description: "The request failed before the alert could be created.",
           variant: "destructive",
         });
       },
@@ -311,6 +343,15 @@ export default function NotificationSettings() {
                       </span>
                     )}
                   </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleSendTestInApp}
+                    disabled={sendTestInApp.isPending}
+                  >
+                    <Bell className="h-4 w-4 mr-2" />
+                    {sendTestInApp.isPending ? "Sending..." : "Send test in-app alert"}
+                  </Button>
                 </div>
 
                 <p className="text-xs text-secondary pt-2">

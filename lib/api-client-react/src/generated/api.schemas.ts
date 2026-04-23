@@ -391,6 +391,27 @@ export interface TestSmsNotificationResult {
   error?: string | null;
 }
 
+export interface TestInAppNotificationResult {
+  delivered: boolean;
+  /** @nullable */
+  error?: string | null;
+}
+
+export interface InAppNotification {
+  id: number;
+  kind: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  /** @nullable */
+  readAt?: string | null;
+}
+
+export interface InAppNotificationList {
+  items: InAppNotification[];
+  unreadCount: number;
+}
+
 export interface NotificationSettingsInput {
   /**
    * @minItems 1

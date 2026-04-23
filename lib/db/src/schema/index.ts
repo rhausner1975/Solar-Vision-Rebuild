@@ -7,3 +7,4 @@ export * from "./galleries";
 export * from "./galleryImages";
 export * from "./notificationSettings";
 export * from "./notificationLog";
+export * from "./inAppNotifications";

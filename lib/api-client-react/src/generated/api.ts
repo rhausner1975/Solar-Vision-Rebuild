@@ -36,6 +36,7 @@ import type {
   HealthStatus,
   ImageMissingVariants,
   ImageVariantsStatus,
+  InAppNotificationList,
   LoginInput,
   NotificationLogEntry,
   NotificationSettings,
@@ -47,6 +48,7 @@ import type {
   RequestUploadUrlResponse,
   ResendNotificationInput,
   SubmissionAck,
+  TestInAppNotificationResult,
   TestNotificationResult,
   TestSmsNotificationResult,
 } from "./api.schemas";
@@ -2694,6 +2696,247 @@ export const useSendTestNotificationSms = <
   TContext
 > => {
   return useMutation(getSendTestNotificationSmsMutationOptions(options));
+};
+
+/**
+ * @summary Create a test in-app notification visible in the admin notifications bell
+ */
+export const getSendTestNotificationInAppUrl = () => {
+  return `/api/admin/notification-settings/test-in-app`;
+};
+
+export const sendTestNotificationInApp = async (
+  options?: RequestInit,
+): Promise<TestInAppNotificationResult> => {
+  return customFetch<TestInAppNotificationResult>(
+    getSendTestNotificationInAppUrl(),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getSendTestNotificationInAppMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendTestNotificationInApp>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendTestNotificationInApp>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["sendTestNotificationInApp"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendTestNotificationInApp>>,
+    void
+  > = () => {
+    return sendTestNotificationInApp(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendTestNotificationInAppMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendTestNotificationInApp>>
+>;
+
+export type SendTestNotificationInAppMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a test in-app notification visible in the admin notifications bell
+ */
+export const useSendTestNotificationInApp = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendTestNotificationInApp>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendTestNotificationInApp>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getSendTestNotificationInAppMutationOptions(options));
+};
+
+/**
+ * @summary List the most recent in-app notifications and unread count
+ */
+export const getListInAppNotificationsUrl = () => {
+  return `/api/admin/in-app-notifications`;
+};
+
+export const listInAppNotifications = async (
+  options?: RequestInit,
+): Promise<InAppNotificationList> => {
+  return customFetch<InAppNotificationList>(getListInAppNotificationsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListInAppNotificationsQueryKey = () => {
+  return [`/api/admin/in-app-notifications`] as const;
+};
+
+export const getListInAppNotificationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listInAppNotifications>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listInAppNotifications>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListInAppNotificationsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listInAppNotifications>>
+  > = ({ signal }) => listInAppNotifications({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listInAppNotifications>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListInAppNotificationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listInAppNotifications>>
+>;
+export type ListInAppNotificationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List the most recent in-app notifications and unread count
+ */
+
+export function useListInAppNotifications<
+  TData = Awaited<ReturnType<typeof listInAppNotifications>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listInAppNotifications>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListInAppNotificationsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Mark every unread in-app notification as read
+ */
+export const getMarkAllInAppNotificationsReadUrl = () => {
+  return `/api/admin/in-app-notifications/mark-all-read`;
+};
+
+export const markAllInAppNotificationsRead = async (
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getMarkAllInAppNotificationsReadUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getMarkAllInAppNotificationsReadMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markAllInAppNotificationsRead>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markAllInAppNotificationsRead>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["markAllInAppNotificationsRead"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markAllInAppNotificationsRead>>,
+    void
+  > = () => {
+    return markAllInAppNotificationsRead(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkAllInAppNotificationsReadMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markAllInAppNotificationsRead>>
+>;
+
+export type MarkAllInAppNotificationsReadMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark every unread in-app notification as read
+ */
+export const useMarkAllInAppNotificationsRead = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markAllInAppNotificationsRead>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof markAllInAppNotificationsRead>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getMarkAllInAppNotificationsReadMutationOptions(options));
 };
 
 /**

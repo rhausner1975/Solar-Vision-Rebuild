@@ -6,6 +6,7 @@ import {
   estimateRequestsTable,
   notificationSettingsTable,
   notificationLogTable,
+  inAppNotificationsTable,
 } from "@workspace/db";
 import { logger } from "./logger";
 
@@ -317,6 +318,48 @@ export async function sendTestNotificationSms(): Promise<{
   };
 }
 
+async function recordInAppNotification(
+  kind: string,
+  title: string,
+  body: string,
+): Promise<DeliveryOutcome> {
+  try {
+    await db.insert(inAppNotificationsTable).values({ kind, title, body });
+    return { status: "sent", sentAt: new Date() };
+  } catch (err) {
+    return { status: "failed", error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function sendTestInAppNotification(): Promise<{
+  delivered: boolean;
+  error?: string;
+}> {
+  const outcome = await recordInAppNotification(
+    "test",
+    "Test in-app alert",
+    `This is a test in-app notification sent at ${new Date().toISOString()}. ` +
+      "If you can see this in the admin notifications bell, in-app alerts are working.",
+  );
+  if (outcome.status === "sent") {
+    logger.info("Created test in-app notification");
+    return { delivered: true };
+  }
+  logger.error({ error: outcome.error }, "Failed to create test in-app notification");
+  return { delivered: false, error: outcome.error ?? "Unknown error" };
+}
+
+function dispatchInApp(kind: string, title: string, body: string, context: string): void {
+  recordInAppNotification(kind, title, body).then((outcome) => {
+    if (outcome.status !== "sent") {
+      logger.error(
+        { error: outcome.error, context },
+        "Failed to record in-app notification",
+      );
+    }
+  });
+}
+
 const DEFAULT_DEDUP_WINDOW_MS = 5 * 60 * 1000;
 const NOTIFY_DEDUP_WINDOW_MS = (() => {
   const raw = process.env["NOTIFY_DEDUP_WINDOW_MS"];
@@ -600,6 +643,12 @@ export function notifyContactSubmission(id: number, data: ContactSubmissionPaylo
   }
   const email = contactEmailBody(data);
   const sms = contactSmsBody(data);
+  dispatchInApp(
+    "contact",
+    `New contact submission from ${data.name}`,
+    contactSmsBody(data),
+    "contact-submission",
+  );
   void dispatch("contact", id, ["email", "sms"], email, sms);
 }
 
@@ -614,6 +663,13 @@ export function notifyEstimateRequest(id: number, data: Record<string, unknown>)
   }
   const email = estimateEmailBody(data);
   const sms = estimateSmsBody(data);
+  const name = typeof data["name"] === "string" ? (data["name"] as string) : "(unknown)";
+  dispatchInApp(
+    "estimate",
+    `New estimate request from ${name}`,
+    estimateSmsBody(data),
+    "estimate-request",
+  );
   void dispatch("estimate", id, ["email", "sms"], email, sms);
 }
 

@@ -528,6 +528,38 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/TestSmsNotificationResult" }
 
+  /admin/notification-settings/test-in-app:
+    post:
+      operationId: sendTestNotificationInApp
+      tags: [admin]
+      summary: Create a test in-app notification visible in the admin notifications bell
+      responses:
+        "200":
+          description: Result of the test in-app send (200 indicates the request was processed; check `delivered`)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestInAppNotificationResult" }
+
+  /admin/in-app-notifications:
+    get:
+      operationId: listInAppNotifications
+      tags: [admin]
+      summary: List the most recent in-app notifications and unread count
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InAppNotificationList" }
+
+  /admin/in-app-notifications/mark-all-read:
+    post:
+      operationId: markAllInAppNotificationsRead
+      tags: [admin]
+      summary: Mark every unread in-app notification as read
+      responses:
+        "204": { description: Marked }
+
   /admin/notification-log:
     get:
       operationId: getNotificationLog
@@ -787,6 +819,30 @@ components:
         recipient: { type: ["string", "null"] }
         error: { type: ["string", "null"] }
       required: [delivered, configured]
+    TestInAppNotificationResult:
+      type: object
+      properties:
+        delivered: { type: boolean }
+        error: { type: ["string", "null"] }
+      required: [delivered]
+    InAppNotification:
+      type: object
+      properties:
+        id: { type: integer }
+        kind: { type: string }
+        title: { type: string }
+        body: { type: string }
+        createdAt: { type: string, format: date-time }
+        readAt: { type: ["string", "null"], format: date-time }
+      required: [id, kind, title, body, createdAt]
+    InAppNotificationList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/InAppNotification" }
+        unreadCount: { type: integer }
+      required: [items, unreadCount]
     NotificationSettingsInput:
       type: object
       properties:

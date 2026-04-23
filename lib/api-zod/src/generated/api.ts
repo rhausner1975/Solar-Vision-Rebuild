@@ -650,6 +650,31 @@ export const SendTestNotificationSmsResponse = zod.object({
 });
 
 /**
+ * @summary Create a test in-app notification visible in the admin notifications bell
+ */
+export const SendTestNotificationInAppResponse = zod.object({
+  delivered: zod.boolean(),
+  error: zod.string().nullish(),
+});
+
+/**
+ * @summary List the most recent in-app notifications and unread count
+ */
+export const ListInAppNotificationsResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      kind: zod.string(),
+      title: zod.string(),
+      body: zod.string(),
+      createdAt: zod.coerce.date(),
+      readAt: zod.coerce.date().nullish(),
+    }),
+  ),
+  unreadCount: zod.number(),
+});
+
+/**
  * @summary List recent notification send attempts
  */
 export const GetNotificationLogResponseItem = zod.object({
