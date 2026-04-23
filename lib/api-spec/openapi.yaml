@@ -402,6 +402,24 @@ paths:
       responses:
         "204": { description: Deleted }
 
+  /admin/storage/backfill-image-variants:
+    post:
+      operationId: backfillImageVariants
+      tags: [storage, admin]
+      summary: Regenerate WebP thumb/medium variants for every gallery image
+      parameters:
+        - in: query
+          name: force
+          required: false
+          schema: { type: string, enum: ["1", "true"] }
+          description: When set, regenerate variants even if they already exist.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BackfillImageVariantsResult" }
+
   /admin/notification-settings:
     get:
       operationId: getNotificationSettings
@@ -689,6 +707,15 @@ components:
           maxItems: 20
           items: { type: string, format: email, maxLength: 320 }
       required: [recipients]
+
+    BackfillImageVariantsResult:
+      type: object
+      properties:
+        total: { type: integer }
+        processed: { type: integer }
+        generated: { type: integer }
+        failed: { type: integer }
+      required: [total, processed, generated, failed]
 
     RequestUploadUrlBody:
       type: object

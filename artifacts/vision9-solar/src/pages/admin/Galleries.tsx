@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
-import { Plus, Edit2, Trash2 } from "lucide-react";
-import { 
-  useListGalleries, 
+import { Plus, Edit2, Trash2, RefreshCw, Loader2 } from "lucide-react";
+import {
+  useListGalleries,
   useCreateGallery,
   useDeleteGallery,
-  getListGalleriesQueryKey
+  useBackfillImageVariants,
+  getListGalleriesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -35,8 +37,31 @@ export default function GalleriesAdmin() {
   const { data: galleries, isLoading } = useListGalleries();
   const createGallery = useCreateGallery();
   const deleteGallery = useDeleteGallery();
+  const backfillVariants = useBackfillImageVariants();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [forceConfirmOpen, setForceConfirmOpen] = useState(false);
+
+  const runBackfill = (force: boolean) => {
+    backfillVariants.mutate(
+      { params: force ? { force: "1" } : undefined },
+      {
+        onSuccess: (result) => {
+          toast({
+            title: force ? "Force regenerate complete" : "Backfill complete",
+            description: `Total: ${result.total} · Processed: ${result.processed} · Variants generated: ${result.generated} · Failed: ${result.failed}`,
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Backfill failed",
+            description: "Could not rebuild image variants. Check server logs.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
 
   const handleCreate = () => {
     const slug = `gallery-${Date.now()}`;
@@ -78,9 +103,56 @@ export default function GalleriesAdmin() {
             <h1 className="text-3xl font-bold text-foreground">Galleries</h1>
             <p className="text-secondary">Manage portfolio galleries.</p>
           </div>
-          <Button onClick={handleCreate} disabled={createGallery.isPending}>
-            <Plus className="h-4 w-4 mr-2" /> New Gallery
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => runBackfill(false)}
+              disabled={backfillVariants.isPending}
+              data-testid="button-rebuild-image-variants"
+              title="Generate any missing WebP thumb/medium variants for all gallery images."
+            >
+              {backfillVariants.isPending && !forceConfirmOpen ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Rebuild image variants
+            </Button>
+            <AlertDialog open={forceConfirmOpen} onOpenChange={setForceConfirmOpen}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  disabled={backfillVariants.isPending}
+                  data-testid="button-force-rebuild-image-variants"
+                  title="Regenerate every variant from the original, even if one already exists."
+                >
+                  Force regenerate
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Force regenerate all variants?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This re-encodes the WebP thumb and medium for every gallery image, even ones that already have variants. It can take a while and use a lot of CPU and storage. Continue?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      setForceConfirmOpen(false);
+                      runBackfill(true);
+                    }}
+                  >
+                    Force regenerate
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Button onClick={handleCreate} disabled={createGallery.isPending} data-testid="button-new-gallery">
+              <Plus className="h-4 w-4 mr-2" /> New Gallery
+            </Button>
+          </div>
         </div>
 
         <div className="bg-background rounded-lg border border-border shadow-sm overflow-hidden">

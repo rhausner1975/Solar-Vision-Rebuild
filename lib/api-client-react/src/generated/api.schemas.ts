@@ -385,6 +385,13 @@ export interface NotificationSettingsInput {
   recipients: string[];
 }
 
+export interface BackfillImageVariantsResult {
+  total: number;
+  processed: number;
+  generated: number;
+  failed: number;
+}
+
 export interface RequestUploadUrlBody {
   name: string;
   size: number;
@@ -395,3 +402,18 @@ export interface RequestUploadUrlResponse {
   uploadURL: string;
   objectPath: string;
 }
+
+export type BackfillImageVariantsParams = {
+  /**
+   * When set, regenerate variants even if they already exist.
+   */
+  force?: BackfillImageVariantsForce;
+};
+
+export type BackfillImageVariantsForce =
+  (typeof BackfillImageVariantsForce)[keyof typeof BackfillImageVariantsForce];
+
+export const BackfillImageVariantsForce = {
+  NUMBER_1: "1",
+  true: "true",
+} as const;

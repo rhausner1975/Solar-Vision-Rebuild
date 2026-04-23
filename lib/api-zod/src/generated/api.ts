@@ -516,6 +516,23 @@ export const DeleteGalleryImageParams = zod.object({
 });
 
 /**
+ * @summary Regenerate WebP thumb/medium variants for every gallery image
+ */
+export const BackfillImageVariantsQueryParams = zod.object({
+  force: zod
+    .enum(["1", "true"])
+    .optional()
+    .describe("When set, regenerate variants even if they already exist."),
+});
+
+export const BackfillImageVariantsResponse = zod.object({
+  total: zod.number(),
+  processed: zod.number(),
+  generated: zod.number(),
+  failed: zod.number(),
+});
+
+/**
  * @summary Get notification recipient list
  */
 export const GetNotificationSettingsResponse = zod.object({

@@ -8,6 +8,9 @@
 
 export * from "./adminUser";
 export * from "./apiError";
+export * from "./backfillImageVariantsForce";
+export * from "./backfillImageVariantsParams";
+export * from "./backfillImageVariantsResult";
 export * from "./changePasswordInput";
 export * from "./confirmPasswordResetInput";
 export * from "./contactSubmission";

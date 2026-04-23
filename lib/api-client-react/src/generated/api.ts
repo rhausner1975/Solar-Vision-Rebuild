@@ -19,6 +19,8 @@ import type {
 import type {
   AdminUser,
   ApiError,
+  BackfillImageVariantsParams,
+  BackfillImageVariantsResult,
   ChangePasswordInput,
   ConfirmPasswordResetInput,
   ContactSubmission,
@@ -1999,6 +2001,107 @@ export const useDeleteGalleryImage = <
   TContext
 > => {
   return useMutation(getDeleteGalleryImageMutationOptions(options));
+};
+
+/**
+ * @summary Regenerate WebP thumb/medium variants for every gallery image
+ */
+export const getBackfillImageVariantsUrl = (
+  params?: BackfillImageVariantsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/storage/backfill-image-variants?${stringifiedParams}`
+    : `/api/admin/storage/backfill-image-variants`;
+};
+
+export const backfillImageVariants = async (
+  params?: BackfillImageVariantsParams,
+  options?: RequestInit,
+): Promise<BackfillImageVariantsResult> => {
+  return customFetch<BackfillImageVariantsResult>(
+    getBackfillImageVariantsUrl(params),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getBackfillImageVariantsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof backfillImageVariants>>,
+    TError,
+    { params?: BackfillImageVariantsParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof backfillImageVariants>>,
+  TError,
+  { params?: BackfillImageVariantsParams },
+  TContext
+> => {
+  const mutationKey = ["backfillImageVariants"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof backfillImageVariants>>,
+    { params?: BackfillImageVariantsParams }
+  > = (props) => {
+    const { params } = props ?? {};
+
+    return backfillImageVariants(params, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BackfillImageVariantsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof backfillImageVariants>>
+>;
+
+export type BackfillImageVariantsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Regenerate WebP thumb/medium variants for every gallery image
+ */
+export const useBackfillImageVariants = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof backfillImageVariants>>,
+    TError,
+    { params?: BackfillImageVariantsParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof backfillImageVariants>>,
+  TError,
+  { params?: BackfillImageVariantsParams },
+  TContext
+> => {
+  return useMutation(getBackfillImageVariantsMutationOptions(options));
 };
 
 /**
