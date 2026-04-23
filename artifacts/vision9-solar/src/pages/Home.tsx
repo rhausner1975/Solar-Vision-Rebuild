@@ -1,12 +1,16 @@
 import { Link } from "wouter";
 import { Helmet } from "react-helmet-async";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Image as ImageIcon } from "lucide-react";
+import { useListPublicGalleries } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import heroImg from "@/assets/source/hero-ground-mount-install.jpg";
 import builderImg from "@/assets/source/commercial-rooftop-array.jpg";
 import reliabilityImg from "@/assets/source/crew-installing-frame.jpg";
 
 export default function Home() {
+  const { data: galleries, isLoading: galleriesLoading } = useListPublicGalleries();
+  const recentGalleries = galleries ? [...galleries].slice(-4).reverse() : [];
+
   return (
     <>
       <Helmet>
@@ -105,6 +109,65 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Recent Projects Section */}
+      {(galleriesLoading || recentGalleries.length > 0) && (
+        <section className="py-20 bg-muted">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
+              <div>
+                <h2 className="text-3xl font-bold text-foreground mb-3">Recent Projects</h2>
+                <p className="text-secondary text-lg max-w-2xl">
+                  A look at some of our latest installations across Ontario.
+                </p>
+              </div>
+              <Button asChild variant="link" className="px-0 text-primary hover:text-primary/80 font-semibold self-start md:self-auto">
+                <Link href="/galleries" className="flex items-center gap-2">
+                  View all projects <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            {galleriesLoading ? (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="animate-pulse bg-background rounded-lg h-64 border border-border"></div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {recentGalleries.map((gallery) => {
+                  const coverImage = gallery.images[0];
+                  return (
+                    <Link key={gallery.id} href={`/galleries/${gallery.slug}`}>
+                      <a className="group block bg-background border border-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow hover-elevate">
+                        <div className="aspect-[4/3] bg-muted relative overflow-hidden flex items-center justify-center">
+                          {coverImage ? (
+                            <img
+                              src={`/api/storage${coverImage.objectPath}`}
+                              alt={coverImage.altText || gallery.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <ImageIcon className="h-12 w-12 text-muted-foreground/30" />
+                          )}
+                        </div>
+                        <div className="p-5">
+                          <h3 className="text-lg font-bold text-foreground mb-1 group-hover:text-primary transition-colors">{gallery.title}</h3>
+                          {gallery.location && (
+                            <p className="text-sm font-medium text-primary">{gallery.location}</p>
+                          )}
+                        </div>
+                      </a>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* CTA Section */}
       <section className="py-24 bg-foreground text-background text-center relative overflow-hidden">
