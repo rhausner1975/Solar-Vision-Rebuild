@@ -281,16 +281,22 @@ export class ObjectStorageService {
   async checkImageVariants(
     objectPath: string,
   ): Promise<Record<ImageVariant, boolean>> {
+    const variants = Object.keys(VARIANT_CONFIG) as ImageVariant[];
+    const checks = await Promise.all(
+      variants.map(async (variant) => {
+        const variantPath = `${objectPath}${IMAGE_VARIANT_SUFFIXES[variant]}`;
+        try {
+          const file = this.resolveObjectEntityFile(variantPath);
+          const [exists] = await file.exists();
+          return [variant, exists] as const;
+        } catch {
+          return [variant, false] as const;
+        }
+      }),
+    );
     const result = { thumb: false, medium: false } as Record<ImageVariant, boolean>;
-    for (const variant of Object.keys(VARIANT_CONFIG) as ImageVariant[]) {
-      const variantPath = `${objectPath}${IMAGE_VARIANT_SUFFIXES[variant]}`;
-      try {
-        const file = this.resolveObjectEntityFile(variantPath);
-        const [exists] = await file.exists();
-        result[variant] = exists;
-      } catch {
-        result[variant] = false;
-      }
+    for (const [variant, exists] of checks) {
+      result[variant] = exists;
     }
     return result;
   }

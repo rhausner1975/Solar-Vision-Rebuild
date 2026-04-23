@@ -469,13 +469,26 @@ router.post("/admin/galleries/:id/images", requireAdmin, async (req, res): Promi
 // variants so admins can decide whether a backfill is needed.
 router.get("/admin/storage/image-variants-status", requireAdmin, async (_req, res): Promise<void> => {
   const rows = await db.select().from(galleryImagesTable);
+  // Run existence checks with bounded concurrency so galleries with hundreds
+  // of images don't take seconds of sequential HEAD requests against object
+  // storage. 16 in flight is well within GCS's per-connection limits and
+  // keeps p99 latency low for the admin status panel.
+  const CONCURRENCY = 16;
   let missingThumb = 0;
   let missingMedium = 0;
-  for (const row of rows) {
-    const status = await objectStorageService.checkImageVariants(row.objectPath);
-    if (!status.thumb) missingThumb += 1;
-    if (!status.medium) missingMedium += 1;
+  let cursor = 0;
+  async function worker(): Promise<void> {
+    while (true) {
+      const i = cursor++;
+      if (i >= rows.length) return;
+      const status = await objectStorageService.checkImageVariants(rows[i].objectPath);
+      if (!status.thumb) missingThumb += 1;
+      if (!status.medium) missingMedium += 1;
+    }
   }
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, rows.length) }, () => worker()),
+  );
   res.json({ totalImages: rows.length, missingThumb, missingMedium });
 });
 
