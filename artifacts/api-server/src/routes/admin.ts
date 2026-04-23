@@ -492,6 +492,90 @@ router.get("/admin/storage/image-variants-status", requireAdmin, async (_req, re
   res.json({ totalImages: rows.length, missingThumb, missingMedium });
 });
 
+// Admin-only: list every gallery image that is missing one or more WebP
+// variants, including which variants are missing and which gallery owns the
+// image. Powers the admin drill-down so admins can see exactly which uploads
+// are stuck without forcing a full backfill.
+router.get(
+  "/admin/storage/image-variants-status/missing",
+  requireAdmin,
+  async (_req, res): Promise<void> => {
+    const rows = await db
+      .select({
+        id: galleryImagesTable.id,
+        galleryId: galleryImagesTable.galleryId,
+        objectPath: galleryImagesTable.objectPath,
+        caption: galleryImagesTable.caption,
+        altText: galleryImagesTable.altText,
+        galleryTitle: galleriesTable.title,
+        gallerySlug: galleriesTable.slug,
+      })
+      .from(galleryImagesTable)
+      .innerJoin(galleriesTable, eq(galleriesTable.id, galleryImagesTable.galleryId))
+      .orderBy(asc(galleriesTable.title), asc(galleryImagesTable.sortOrder));
+    const missing: Array<{
+      id: number;
+      galleryId: number;
+      galleryTitle: string;
+      gallerySlug: string;
+      objectPath: string;
+      caption: string | null;
+      altText: string | null;
+      missingVariants: Array<"thumb" | "medium">;
+    }> = [];
+    for (const row of rows) {
+      const status = await objectStorageService.checkImageVariants(row.objectPath);
+      const missingVariants: Array<"thumb" | "medium"> = [];
+      if (!status.thumb) missingVariants.push("thumb");
+      if (!status.medium) missingVariants.push("medium");
+      if (missingVariants.length === 0) continue;
+      missing.push({
+        id: row.id,
+        galleryId: row.galleryId,
+        galleryTitle: row.galleryTitle,
+        gallerySlug: row.gallerySlug,
+        objectPath: row.objectPath,
+        caption: row.caption,
+        altText: row.altText,
+        missingVariants,
+      });
+    }
+    res.json(missing);
+  },
+);
+
+// Admin-only: regenerate WebP variants for a single gallery image. Lets
+// admins fix one stuck upload without re-running the full backfill.
+router.post(
+  "/admin/gallery-images/:id/regenerate-variants",
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const params = DeleteGalleryImageParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+    const force = req.query.force === "1" || req.query.force === "true";
+    const [row] = await db
+      .select()
+      .from(galleryImagesTable)
+      .where(eq(galleryImagesTable.id, params.data.id));
+    if (!row) {
+      res.status(404).json({ error: "Image not found" });
+      return;
+    }
+    try {
+      const generated = await objectStorageService.generateImageVariants(row.objectPath, {
+        force,
+      });
+      res.json({ id: row.id, objectPath: row.objectPath, generated });
+    } catch (err) {
+      req.log.error({ err, objectPath: row.objectPath }, "Regenerate variants failed");
+      res.status(500).json({ error: "Failed to regenerate variants" });
+    }
+  },
+);
+
 // Admin-only: backfill thumb/medium WebP variants for every gallery image.
 // Idempotent — already-present variants are skipped unless ?force=1 is set.
 router.post("/admin/storage/backfill-image-variants", requireAdmin, async (req, res): Promise<void> => {

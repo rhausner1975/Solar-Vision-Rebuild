@@ -525,6 +525,40 @@ export const GetImageVariantsStatusResponse = zod.object({
 });
 
 /**
+ * @summary List gallery images that are missing one or more WebP variants
+ */
+export const ListImagesMissingVariantsResponseItem = zod.object({
+  id: zod.number(),
+  galleryId: zod.number(),
+  galleryTitle: zod.string(),
+  gallerySlug: zod.string(),
+  objectPath: zod.string(),
+  caption: zod.string().nullish(),
+  altText: zod.string().nullish(),
+  missingVariants: zod.array(zod.enum(["thumb", "medium"])),
+});
+export const ListImagesMissingVariantsResponse = zod.array(
+  ListImagesMissingVariantsResponseItem,
+);
+
+/**
+ * @summary Regenerate WebP thumb/medium variants for a single gallery image
+ */
+export const RegenerateImageVariantsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RegenerateImageVariantsQueryParams = zod.object({
+  force: zod.enum(["1", "true"]).optional(),
+});
+
+export const RegenerateImageVariantsResponse = zod.object({
+  id: zod.number(),
+  objectPath: zod.string(),
+  generated: zod.array(zod.enum(["thumb", "medium"])),
+});
+
+/**
  * @summary Regenerate WebP thumb/medium variants for every gallery image
  */
 export const BackfillImageVariantsQueryParams = zod.object({

@@ -8,9 +8,20 @@ import {
   useDeleteGallery,
   useBackfillImageVariants,
   useGetImageVariantsStatus,
+  useListImagesMissingVariants,
+  useRegenerateImageVariants,
   getGetImageVariantsStatusQueryKey,
+  getListImagesMissingVariantsQueryKey,
   getListGalleriesQueryKey,
 } from "@workspace/api-client-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +55,44 @@ export default function GalleriesAdmin() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [forceConfirmOpen, setForceConfirmOpen] = useState(false);
+  const [missingDialogOpen, setMissingDialogOpen] = useState(false);
+  const missingImages = useListImagesMissingVariants({
+    query: {
+      enabled: missingDialogOpen,
+      queryKey: getListImagesMissingVariantsQueryKey(),
+    },
+  });
+  const regenerateOne = useRegenerateImageVariants();
+
+  const invalidateVariantQueries = () => {
+    queryClient.invalidateQueries({ queryKey: getGetImageVariantsStatusQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getListImagesMissingVariantsQueryKey() });
+  };
+
+  const handleRegenerateOne = (id: number) => {
+    regenerateOne.mutate(
+      { id },
+      {
+        onSuccess: (result) => {
+          toast({
+            title: "Variants regenerated",
+            description:
+              result.generated.length === 0
+                ? "All variants already existed."
+                : `Generated: ${result.generated.join(", ")}.`,
+          });
+          invalidateVariantQueries();
+        },
+        onError: () => {
+          toast({
+            title: "Regenerate failed",
+            description: "Could not regenerate variants for this image.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
 
   const runBackfill = (force: boolean) => {
     backfillVariants.mutate(
@@ -54,7 +103,7 @@ export default function GalleriesAdmin() {
             title: force ? "Force regenerate complete" : "Backfill complete",
             description: `Total: ${result.total} · Processed: ${result.processed} · Variants generated: ${result.generated} · Failed: ${result.failed}`,
           });
-          queryClient.invalidateQueries({ queryKey: getGetImageVariantsStatusQueryKey() });
+          invalidateVariantQueries();
         },
         onError: () => {
           toast({
@@ -106,21 +155,145 @@ export default function GalleriesAdmin() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Galleries</h1>
             <p className="text-secondary">Manage portfolio galleries.</p>
-            <p
-              className="text-sm text-muted-foreground mt-1"
-              data-testid="text-image-variants-status"
-            >
-              {variantsStatus.isLoading
+            {(() => {
+              const status = variantsStatus.data;
+              const hasMissing =
+                !!status &&
+                status.totalImages > 0 &&
+                (status.missingThumb > 0 || status.missingMedium > 0);
+              const statusText = variantsStatus.isLoading
                 ? "Checking image variants..."
-                : variantsStatus.isError || !variantsStatus.data
+                : variantsStatus.isError || !status
                   ? "Image variant status unavailable."
-                  : variantsStatus.data.totalImages === 0
+                  : status.totalImages === 0
                     ? "No gallery images yet."
-                    : variantsStatus.data.missingThumb === 0 &&
-                        variantsStatus.data.missingMedium === 0
-                      ? `All ${variantsStatus.data.totalImages} images have WebP variants.`
-                      : `${variantsStatus.data.missingThumb} of ${variantsStatus.data.totalImages} images missing thumb · ${variantsStatus.data.missingMedium} of ${variantsStatus.data.totalImages} missing medium WebP variants.`}
-            </p>
+                    : !hasMissing
+                      ? `All ${status.totalImages} images have WebP variants.`
+                      : `${status.missingThumb} of ${status.totalImages} images missing thumb · ${status.missingMedium} of ${status.totalImages} missing medium WebP variants.`;
+              return (
+                <Dialog open={missingDialogOpen} onOpenChange={setMissingDialogOpen}>
+                  {hasMissing ? (
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-sm text-muted-foreground mt-1 underline-offset-2 hover:underline focus:underline focus:outline-none text-left"
+                        data-testid="button-image-variants-status"
+                      >
+                        {statusText}
+                        <span className="ml-1 text-xs">(view affected)</span>
+                      </button>
+                    </DialogTrigger>
+                  ) : (
+                    <p
+                      className="text-sm text-muted-foreground mt-1"
+                      data-testid="text-image-variants-status"
+                    >
+                      {statusText}
+                    </p>
+                  )}
+                  <DialogContent className="max-w-3xl" data-testid="dialog-missing-variants">
+                    <DialogHeader>
+                      <DialogTitle>Images missing WebP variants</DialogTitle>
+                      <DialogDescription>
+                        These gallery images are missing one or more optimized
+                        variants. Regenerate individually or use Rebuild image
+                        variants to process all at once.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-[60vh] overflow-y-auto">
+                      {missingImages.isLoading ? (
+                        <div className="p-6 text-center text-muted-foreground">
+                          Loading…
+                        </div>
+                      ) : missingImages.isError ? (
+                        <div className="p-6 text-center text-destructive">
+                          Could not load the list of affected images.
+                        </div>
+                      ) : !missingImages.data?.length ? (
+                        <div className="p-6 text-center text-muted-foreground">
+                          No images are missing variants.
+                        </div>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Image</TableHead>
+                              <TableHead>Gallery</TableHead>
+                              <TableHead>Missing</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {missingImages.data.map((img) => {
+                              const label =
+                                img.caption?.trim() ||
+                                img.altText?.trim() ||
+                                img.objectPath.split("/").pop() ||
+                                img.objectPath;
+                              return (
+                                <TableRow
+                                  key={img.id}
+                                  data-testid={`row-missing-image-${img.id}`}
+                                >
+                                  <TableCell className="font-medium max-w-[260px]">
+                                    <div className="truncate" title={label}>
+                                      {label}
+                                    </div>
+                                    <div
+                                      className="text-xs text-muted-foreground truncate"
+                                      title={img.objectPath}
+                                    >
+                                      {img.objectPath}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Link
+                                      href={`/admin/galleries/${img.galleryId}`}
+                                      className="hover:underline"
+                                    >
+                                      {img.galleryTitle}
+                                    </Link>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex flex-wrap gap-1">
+                                      {img.missingVariants.map((v) => (
+                                        <Badge key={v} variant="secondary">
+                                          {v}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleRegenerateOne(img.id)}
+                                      disabled={
+                                        regenerateOne.isPending &&
+                                        regenerateOne.variables?.id === img.id
+                                      }
+                                      data-testid={`button-regenerate-image-${img.id}`}
+                                    >
+                                      {regenerateOne.isPending &&
+                                      regenerateOne.variables?.id === img.id ? (
+                                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                      ) : (
+                                        <RefreshCw className="h-4 w-4 mr-1" />
+                                      )}
+                                      Regenerate
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              );
+            })()}
           </div>
           <div className="flex items-center gap-2">
             <Button

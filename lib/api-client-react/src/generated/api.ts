@@ -34,11 +34,14 @@ import type {
   GalleryInput,
   GalleryWithImages,
   HealthStatus,
+  ImageMissingVariants,
   ImageVariantsStatus,
   LoginInput,
   NotificationLogEntry,
   NotificationSettings,
   NotificationSettingsInput,
+  RegenerateImageVariantsParams,
+  RegenerateImageVariantsResult,
   RequestPasswordResetInput,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
@@ -2081,6 +2084,188 @@ export function useGetImageVariantsStatus<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List gallery images that are missing one or more WebP variants
+ */
+export const getListImagesMissingVariantsUrl = () => {
+  return `/api/admin/storage/image-variants-status/missing`;
+};
+
+export const listImagesMissingVariants = async (
+  options?: RequestInit,
+): Promise<ImageMissingVariants[]> => {
+  return customFetch<ImageMissingVariants[]>(
+    getListImagesMissingVariantsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListImagesMissingVariantsQueryKey = () => {
+  return [`/api/admin/storage/image-variants-status/missing`] as const;
+};
+
+export const getListImagesMissingVariantsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listImagesMissingVariants>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listImagesMissingVariants>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListImagesMissingVariantsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listImagesMissingVariants>>
+  > = ({ signal }) => listImagesMissingVariants({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listImagesMissingVariants>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListImagesMissingVariantsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listImagesMissingVariants>>
+>;
+export type ListImagesMissingVariantsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List gallery images that are missing one or more WebP variants
+ */
+
+export function useListImagesMissingVariants<
+  TData = Awaited<ReturnType<typeof listImagesMissingVariants>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listImagesMissingVariants>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListImagesMissingVariantsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Regenerate WebP thumb/medium variants for a single gallery image
+ */
+export const getRegenerateImageVariantsUrl = (
+  id: number,
+  params?: RegenerateImageVariantsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/gallery-images/${id}/regenerate-variants?${stringifiedParams}`
+    : `/api/admin/gallery-images/${id}/regenerate-variants`;
+};
+
+export const regenerateImageVariants = async (
+  id: number,
+  params?: RegenerateImageVariantsParams,
+  options?: RequestInit,
+): Promise<RegenerateImageVariantsResult> => {
+  return customFetch<RegenerateImageVariantsResult>(
+    getRegenerateImageVariantsUrl(id, params),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getRegenerateImageVariantsMutationOptions = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof regenerateImageVariants>>,
+    TError,
+    { id: number; params?: RegenerateImageVariantsParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof regenerateImageVariants>>,
+  TError,
+  { id: number; params?: RegenerateImageVariantsParams },
+  TContext
+> => {
+  const mutationKey = ["regenerateImageVariants"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof regenerateImageVariants>>,
+    { id: number; params?: RegenerateImageVariantsParams }
+  > = (props) => {
+    const { id, params } = props ?? {};
+
+    return regenerateImageVariants(id, params, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegenerateImageVariantsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof regenerateImageVariants>>
+>;
+
+export type RegenerateImageVariantsMutationError = ErrorType<ApiError>;
+
+/**
+ * @summary Regenerate WebP thumb/medium variants for a single gallery image
+ */
+export const useRegenerateImageVariants = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof regenerateImageVariants>>,
+    TError,
+    { id: number; params?: RegenerateImageVariantsParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof regenerateImageVariants>>,
+  TError,
+  { id: number; params?: RegenerateImageVariantsParams },
+  TContext
+> => {
+  return useMutation(getRegenerateImageVariantsMutationOptions(options));
+};
 
 /**
  * @summary Regenerate WebP thumb/medium variants for every gallery image

@@ -412,6 +412,39 @@ export interface ImageVariantsStatus {
   missingMedium: number;
 }
 
+export type ImageMissingVariantsMissingVariantsItem =
+  (typeof ImageMissingVariantsMissingVariantsItem)[keyof typeof ImageMissingVariantsMissingVariantsItem];
+
+export const ImageMissingVariantsMissingVariantsItem = {
+  thumb: "thumb",
+  medium: "medium",
+} as const;
+
+export interface ImageMissingVariants {
+  id: number;
+  galleryId: number;
+  galleryTitle: string;
+  gallerySlug: string;
+  objectPath: string;
+  caption?: string | null;
+  altText?: string | null;
+  missingVariants: ImageMissingVariantsMissingVariantsItem[];
+}
+
+export type RegenerateImageVariantsResultGeneratedItem =
+  (typeof RegenerateImageVariantsResultGeneratedItem)[keyof typeof RegenerateImageVariantsResultGeneratedItem];
+
+export const RegenerateImageVariantsResultGeneratedItem = {
+  thumb: "thumb",
+  medium: "medium",
+} as const;
+
+export interface RegenerateImageVariantsResult {
+  id: number;
+  objectPath: string;
+  generated: RegenerateImageVariantsResultGeneratedItem[];
+}
+
 export interface BackfillImageVariantsResult {
   total: number;
   processed: number;
@@ -461,6 +494,18 @@ export interface RequestUploadUrlResponse {
   uploadURL: string;
   objectPath: string;
 }
+
+export type RegenerateImageVariantsParams = {
+  force?: RegenerateImageVariantsForce;
+};
+
+export type RegenerateImageVariantsForce =
+  (typeof RegenerateImageVariantsForce)[keyof typeof RegenerateImageVariantsForce];
+
+export const RegenerateImageVariantsForce = {
+  NUMBER_1: "1",
+  true: "true",
+} as const;
 
 export type BackfillImageVariantsParams = {
   /**

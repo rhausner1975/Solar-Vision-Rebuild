@@ -414,6 +414,46 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ImageVariantsStatus" }
 
+  /admin/storage/image-variants-status/missing:
+    get:
+      operationId: listImagesMissingVariants
+      tags: [storage, admin]
+      summary: List gallery images that are missing one or more WebP variants
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ImageMissingVariants" }
+
+  /admin/gallery-images/{id}/regenerate-variants:
+    post:
+      operationId: regenerateImageVariants
+      tags: [storage, admin]
+      summary: Regenerate WebP thumb/medium variants for a single gallery image
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: force
+          required: false
+          schema: { type: string, enum: ["1", "true"] }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RegenerateImageVariantsResult" }
+        "404":
+          description: Image not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+
   /admin/storage/backfill-image-variants:
     post:
       operationId: backfillImageVariants
@@ -769,6 +809,32 @@ components:
         missingThumb: { type: integer }
         missingMedium: { type: integer }
       required: [totalImages, missingThumb, missingMedium]
+
+    ImageMissingVariants:
+      type: object
+      properties:
+        id: { type: integer }
+        galleryId: { type: integer }
+        galleryTitle: { type: string }
+        gallerySlug: { type: string }
+        objectPath: { type: string }
+        caption: { type: string, nullable: true }
+        altText: { type: string, nullable: true }
+        missingVariants:
+          type: array
+          items: { type: string, enum: [thumb, medium] }
+      required:
+        [id, galleryId, galleryTitle, gallerySlug, objectPath, missingVariants]
+
+    RegenerateImageVariantsResult:
+      type: object
+      properties:
+        id: { type: integer }
+        objectPath: { type: string }
+        generated:
+          type: array
+          items: { type: string, enum: [thumb, medium] }
+      required: [id, objectPath, generated]
 
     BackfillImageVariantsResult:
       type: object
