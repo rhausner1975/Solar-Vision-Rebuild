@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import {
@@ -37,6 +37,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
   Table,
@@ -217,6 +218,49 @@ export default function GalleriesAdmin() {
   const regenerateOne = useRegenerateImageVariants();
   const [bulkRegenerating, setBulkRegenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!missingDialogOpen) {
+      setSelectedIds(new Set());
+    }
+  }, [missingDialogOpen]);
+
+  const availableIds = useMemo<number[]>(
+    () => missingImages.data?.map((img: { id: number }) => img.id) ?? [],
+    [missingImages.data],
+  );
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const allowed = new Set(availableIds);
+      let changed = false;
+      const next = new Set<number>();
+      for (const id of prev) {
+        if (allowed.has(id)) next.add(id);
+        else changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [availableIds]);
+
+  const allSelected =
+    availableIds.length > 0 && selectedIds.size === availableIds.length;
+  const someSelected = selectedIds.size > 0 && !allSelected;
+
+  const toggleSelectAll = (checked: boolean) => {
+    setSelectedIds(checked ? new Set(availableIds) : new Set());
+  };
+
+  const toggleSelectOne = (id: number, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [activeJobForce, setActiveJobForce] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -242,31 +286,54 @@ export default function GalleriesAdmin() {
     queryClient.invalidateQueries({ queryKey: getListImagesMissingVariantsQueryKey() });
   };
 
-  const handleRegenerateAllListed = async () => {
-    const imgs = missingImages.data;
-    if (!imgs?.length) return;
+  const runBulkRegenerate = async (
+    ids: number[],
+    mode: "all" | "selected",
+  ) => {
+    if (!ids.length) return;
     setBulkRegenerating(true);
-    setBulkProgress({ done: 0, total: imgs.length });
+    setBulkProgress({ done: 0, total: ids.length });
     let succeeded = 0;
     let failed = 0;
     let totalGenerated = 0;
-    for (const img of imgs) {
+    for (const id of ids) {
       try {
-        const result = await regenerateOne.mutateAsync({ id: img.id });
+        const result = await regenerateOne.mutateAsync({ id });
         succeeded += 1;
         totalGenerated += result.generated.length;
       } catch {
         failed += 1;
       }
-      setBulkProgress((p) => ({ done: p.done + 1, total: imgs.length }));
+      setBulkProgress((p) => ({ done: p.done + 1, total: ids.length }));
     }
     setBulkRegenerating(false);
     invalidateVariantQueries();
+    if (mode === "selected") {
+      setSelectedIds(new Set());
+    }
+    const successTitle =
+      mode === "selected"
+        ? "Regenerated selected images"
+        : "Regenerated all listed images";
     toast({
-      title: failed === 0 ? "Regenerated all listed images" : "Regenerate finished with errors",
-      description: `Processed: ${succeeded + failed} of ${imgs.length} · Variants generated: ${totalGenerated} · Failed: ${failed}`,
+      title: failed === 0 ? successTitle : "Regenerate finished with errors",
+      description: `Processed: ${succeeded + failed} of ${ids.length} · Variants generated: ${totalGenerated} · Failed: ${failed}`,
       variant: failed === 0 ? undefined : "destructive",
     });
+  };
+
+  const handleRegenerateAllListed = () => {
+    const imgs = missingImages.data;
+    if (!imgs?.length) return;
+    void runBulkRegenerate(imgs.map((i: { id: number }) => i.id), "all");
+  };
+
+  const handleRegenerateSelected = () => {
+    const ids = ((missingImages.data ?? []) as { id: number }[])
+      .map((i) => i.id)
+      .filter((id) => selectedIds.has(id));
+    if (!ids.length) return;
+    void runBulkRegenerate(ids, "selected");
   };
 
   const handleRegenerateOne = (id: number) => {
@@ -453,23 +520,44 @@ export default function GalleriesAdmin() {
                         >
                           {bulkRegenerating
                             ? `Regenerating ${bulkProgress.done} of ${bulkProgress.total}…`
-                            : `${missingImages.data.length} image${missingImages.data.length === 1 ? "" : "s"} affected`}
+                            : selectedIds.size > 0
+                              ? `${selectedIds.size} of ${missingImages.data.length} selected`
+                              : `${missingImages.data.length} image${missingImages.data.length === 1 ? "" : "s"} affected`}
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleRegenerateAllListed}
-                          disabled={bulkRegenerating || regenerateOne.isPending}
-                          data-testid="button-regenerate-all-listed"
-                          title="Regenerate variants for every image currently shown in this list."
-                        >
-                          {bulkRegenerating ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-4 w-4 mr-2" />
+                        <div className="flex items-center gap-2">
+                          {selectedIds.size > 0 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleRegenerateSelected}
+                              disabled={bulkRegenerating || regenerateOne.isPending}
+                              data-testid="button-regenerate-selected"
+                              title="Regenerate variants for the rows you have checked."
+                            >
+                              {bulkRegenerating ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <RefreshCw className="h-4 w-4 mr-2" />
+                              )}
+                              Regenerate selected ({selectedIds.size})
+                            </Button>
                           )}
-                          Regenerate all listed
-                        </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRegenerateAllListed}
+                            disabled={bulkRegenerating || regenerateOne.isPending}
+                            data-testid="button-regenerate-all-listed"
+                            title="Regenerate variants for every image currently shown in this list."
+                          >
+                            {bulkRegenerating ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                            )}
+                            Regenerate all listed
+                          </Button>
+                        </div>
                       </div>
                     )}
                     <div className="max-h-[60vh] overflow-y-auto">
@@ -489,6 +577,23 @@ export default function GalleriesAdmin() {
                         <Table>
                           <TableHeader>
                             <TableRow>
+                              <TableHead className="w-[40px]">
+                                <Checkbox
+                                  checked={
+                                    allSelected
+                                      ? true
+                                      : someSelected
+                                        ? "indeterminate"
+                                        : false
+                                  }
+                                  onCheckedChange={(checked) =>
+                                    toggleSelectAll(checked === true)
+                                  }
+                                  disabled={bulkRegenerating}
+                                  aria-label="Select all affected images"
+                                  data-testid="checkbox-select-all-missing"
+                                />
+                              </TableHead>
                               <TableHead>Image</TableHead>
                               <TableHead>Gallery</TableHead>
                               <TableHead>Missing</TableHead>
@@ -506,7 +611,21 @@ export default function GalleriesAdmin() {
                                 <TableRow
                                   key={img.id}
                                   data-testid={`row-missing-image-${img.id}`}
+                                  data-state={
+                                    selectedIds.has(img.id) ? "selected" : undefined
+                                  }
                                 >
+                                  <TableCell className="w-[40px]">
+                                    <Checkbox
+                                      checked={selectedIds.has(img.id)}
+                                      onCheckedChange={(checked) =>
+                                        toggleSelectOne(img.id, checked === true)
+                                      }
+                                      disabled={bulkRegenerating}
+                                      aria-label={`Select ${label}`}
+                                      data-testid={`checkbox-select-missing-${img.id}`}
+                                    />
+                                  </TableCell>
                                   <TableCell className="font-medium max-w-[260px]">
                                     <div className="flex items-center gap-3">
                                       <MissingImageThumbnail
