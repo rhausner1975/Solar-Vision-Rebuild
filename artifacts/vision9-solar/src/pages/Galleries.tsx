@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { ArrowRight, Image as ImageIcon } from "lucide-react";
 import { useListPublicGalleries } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { imageVariantUrl, imageSrcSet } from "@/lib/galleryImage";
 
 export default function Galleries() {
   const { data: galleries, isLoading } = useListPublicGalleries();
@@ -46,8 +47,12 @@ export default function Galleries() {
                     <a className="group block bg-background border border-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow hover-elevate">
                       <div className="aspect-[4/3] bg-muted relative overflow-hidden flex items-center justify-center">
                         {coverImage ? (
-                          <img 
-                            src={`/api/storage${coverImage.objectPath}`} 
+                          <img
+                            src={imageVariantUrl(coverImage.objectPath, "medium")}
+                            srcSet={imageSrcSet(coverImage.objectPath)}
+                            sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                            loading="lazy"
+                            decoding="async"
                             alt={coverImage.altText || gallery.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />

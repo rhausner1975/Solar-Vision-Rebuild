@@ -149,7 +149,12 @@ async function seed() {
           altText: img.altText,
           sortOrder: sortOrder++,
         });
-        console.log(`  ✓ ${img.file} → ${objectPath}`);
+        try {
+          const variants = await storage.generateImageVariants(objectPath);
+          console.log(`  ✓ ${img.file} → ${objectPath} (variants: ${variants.join(", ") || "none new"})`);
+        } catch (variantErr) {
+          console.error(`  ! Variants failed for ${img.file}:`, variantErr);
+        }
       } catch (err) {
         console.error(`  ✗ Failed to upload ${img.file}:`, err);
       }

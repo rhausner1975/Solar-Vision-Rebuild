@@ -1,6 +1,7 @@
 import { Storage, File } from "@google-cloud/storage";
 import { Readable } from "stream";
 import { randomUUID } from "crypto";
+import sharp from "sharp";
 import {
   ObjectAclPolicy,
   ObjectPermission,
@@ -8,6 +9,18 @@ import {
   getObjectAclPolicy,
   setObjectAclPolicy,
 } from "./objectAcl";
+
+export const IMAGE_VARIANT_SUFFIXES = {
+  thumb: ".thumb.webp",
+  medium: ".medium.webp",
+} as const;
+
+export type ImageVariant = keyof typeof IMAGE_VARIANT_SUFFIXES;
+
+const VARIANT_CONFIG: Record<ImageVariant, { width: number; quality: number }> = {
+  thumb: { width: 400, quality: 78 },
+  medium: { width: 1200, quality: 82 },
+};
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
@@ -187,6 +200,74 @@ export class ObjectStorageService {
     const objectFile = await this.getObjectEntityFile(normalizedPath);
     await setObjectAclPolicy(objectFile, aclPolicy);
     return normalizedPath;
+  }
+
+  /**
+   * Resolve the GCS File object for a given object entity path (e.g. "/objects/uploads/abc").
+   * Unlike getObjectEntityFile, does not require the file to already exist on the bucket.
+   */
+  resolveObjectEntityFile(objectPath: string): File {
+    if (!objectPath.startsWith("/objects/")) {
+      throw new ObjectNotFoundError();
+    }
+    const parts = objectPath.slice(1).split("/");
+    if (parts.length < 2) {
+      throw new ObjectNotFoundError();
+    }
+    const entityId = parts.slice(1).join("/");
+    let entityDir = this.getPrivateObjectDir();
+    if (!entityDir.endsWith("/")) entityDir = `${entityDir}/`;
+    const objectEntityPath = `${entityDir}${entityId}`;
+    const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+    return objectStorageClient.bucket(bucketName).file(objectName);
+  }
+
+  /**
+   * Generate downscaled WebP variants (thumb ~400px, medium ~1200px) from an
+   * already-uploaded gallery image and store them alongside the original. The
+   * variant blobs are addressable by appending a known suffix to the original
+   * objectPath (see IMAGE_VARIANT_SUFFIXES). ACL is mirrored from the original
+   * so public images stay public.
+   *
+   * Returns the list of variants that were (re)generated. Variants that were
+   * already present are skipped unless `force` is true.
+   */
+  async generateImageVariants(
+    objectPath: string,
+    options: { force?: boolean } = {},
+  ): Promise<ImageVariant[]> {
+    const original = await this.getObjectEntityFile(objectPath);
+    const aclPolicy = await getObjectAclPolicy(original);
+    const [originalBuf] = await original.download();
+
+    const generated: ImageVariant[] = [];
+    for (const variant of Object.keys(VARIANT_CONFIG) as ImageVariant[]) {
+      const variantPath = `${objectPath}${IMAGE_VARIANT_SUFFIXES[variant]}`;
+      const variantFile = this.resolveObjectEntityFile(variantPath);
+
+      if (!options.force) {
+        const [exists] = await variantFile.exists();
+        if (exists) continue;
+      }
+
+      const cfg = VARIANT_CONFIG[variant];
+      const buf = await sharp(originalBuf, { failOn: "none" })
+        .rotate()
+        .resize({ width: cfg.width, withoutEnlargement: true, fit: "inside" })
+        .webp({ quality: cfg.quality })
+        .toBuffer();
+
+      await variantFile.save(buf, {
+        contentType: "image/webp",
+        resumable: false,
+      });
+
+      if (aclPolicy) {
+        await setObjectAclPolicy(variantFile, aclPolicy);
+      }
+      generated.push(variant);
+    }
+    return generated;
   }
 
   async canAccessObjectEntity({

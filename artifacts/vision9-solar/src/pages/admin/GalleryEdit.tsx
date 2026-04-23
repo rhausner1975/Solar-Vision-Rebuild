@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { imageVariantUrl } from "@/lib/galleryImage";
 
 const gallerySchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -315,9 +316,11 @@ export default function GalleryEdit() {
                 <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {gallery.images.map((img) => (
                     <div key={img.id} className="group relative aspect-square bg-muted rounded-md border border-border overflow-hidden">
-                      <img 
-                        src={`/api/storage${img.objectPath}`} 
-                        alt={img.altText || ""} 
+                      <img
+                        src={imageVariantUrl(img.objectPath, "thumb")}
+                        loading="lazy"
+                        decoding="async"
+                        alt={img.altText || ""}
                         className="w-full h-full object-cover"
                       />
                       <ImageMetaEditor image={img} />

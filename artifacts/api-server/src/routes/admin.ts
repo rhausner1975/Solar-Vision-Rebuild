@@ -47,6 +47,9 @@ import {
   passwordResetConfirmLimiter,
 } from "../lib/rateLimit";
 import { sendMail, getAdminNotificationEmail } from "../lib/mailer";
+import { ObjectStorageService } from "../lib/objectStorage";
+
+const objectStorageService = new ObjectStorageService();
 
 const router: IRouter = Router();
 
@@ -362,7 +365,40 @@ router.post("/admin/galleries/:id/images", requireAdmin, async (req, res): Promi
       sortOrder: parsed.data.sortOrder ?? 0,
     })
     .returning();
+  // Generate downscaled WebP variants synchronously so that the gallery's
+  // <img srcset> never points at variants that don't exist yet. A failure
+  // here is non-fatal: the original is still usable, the row already exists,
+  // and the admin can re-run backfill later.
+  try {
+    await objectStorageService.generateImageVariants(parsed.data.objectPath);
+  } catch (err) {
+    req.log.error(
+      { err, objectPath: parsed.data.objectPath },
+      "Failed to generate image variants",
+    );
+  }
   res.status(201).json(row);
+});
+
+// Admin-only: backfill thumb/medium WebP variants for every gallery image.
+// Idempotent — already-present variants are skipped unless ?force=1 is set.
+router.post("/admin/storage/backfill-image-variants", requireAdmin, async (req, res): Promise<void> => {
+  const force = req.query.force === "1" || req.query.force === "true";
+  const rows = await db.select().from(galleryImagesTable);
+  let processed = 0;
+  let generated = 0;
+  let failed = 0;
+  for (const row of rows) {
+    try {
+      const v = await objectStorageService.generateImageVariants(row.objectPath, { force });
+      generated += v.length;
+      processed += 1;
+    } catch (err) {
+      failed += 1;
+      req.log.error({ err, objectPath: row.objectPath }, "Backfill failed for image");
+    }
+  }
+  res.json({ total: rows.length, processed, generated, failed });
 });
 
 router.patch("/admin/gallery-images/:id", requireAdmin, async (req, res): Promise<void> => {

@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useGetPublicGallery, getGetPublicGalleryQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { imageVariantUrl, imageSrcSet } from "@/lib/galleryImage";
 
 export default function GalleryView() {
   const [, params] = useRoute("/galleries/:slug");
@@ -58,7 +59,7 @@ export default function GalleryView() {
     "@type": "ImageGallery",
     "name": gallery.title,
     "description": gallery.description || "",
-    "image": images.map(img => `https://vision9solar.com/api/storage${img.objectPath}`)
+    "image": images.map(img => `https://vision9solar.com${imageVariantUrl(img.objectPath, "full")}`)
   };
 
   // 5 image strip logic
@@ -95,8 +96,11 @@ export default function GalleryView() {
                 className="aspect-video bg-muted rounded-lg overflow-hidden relative cursor-zoom-in mb-6 flex items-center justify-center border border-border shadow-sm group"
                 onClick={() => setLightboxOpen(true)}
               >
-                <img 
-                  src={`/api/storage${images[currentIndex].objectPath}`} 
+                <img
+                  src={imageVariantUrl(images[currentIndex].objectPath, "medium")}
+                  srcSet={imageSrcSet(images[currentIndex].objectPath)}
+                  sizes="(min-width: 1024px) 1024px, 100vw"
+                  decoding="async"
                   alt={images[currentIndex].altText || gallery.title}
                   className="max-w-full max-h-full object-contain"
                 />
@@ -131,8 +135,10 @@ export default function GalleryView() {
                             isActive ? "border-primary shadow-md scale-105 z-10" : "border-transparent opacity-70 hover:opacity-100"
                           }`}
                         >
-                          <img 
-                            src={`/api/storage${img.objectPath}`} 
+                          <img
+                            src={imageVariantUrl(img.objectPath, "thumb")}
+                            loading="lazy"
+                            decoding="async"
                             alt=""
                             className="w-full h-full object-cover"
                           />
@@ -174,8 +180,11 @@ export default function GalleryView() {
               </div>
               
               <div className="flex-1 relative flex items-center justify-center overflow-hidden">
-                <img 
-                  src={`/api/storage${images[currentIndex].objectPath}`} 
+                <img
+                  src={imageVariantUrl(images[currentIndex].objectPath, "full")}
+                  srcSet={imageSrcSet(images[currentIndex].objectPath)}
+                  sizes="100vw"
+                  decoding="async"
                   alt={images[currentIndex].altText || ""}
                   className="max-w-full max-h-full object-contain"
                 />
