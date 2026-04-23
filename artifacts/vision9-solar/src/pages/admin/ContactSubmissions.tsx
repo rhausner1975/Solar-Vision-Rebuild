@@ -140,9 +140,13 @@ export default function ContactSubmissions() {
                             emailStatus={sub.emailStatus as NotificationStatus}
                             emailError={sub.emailError}
                             emailSentAt={sub.emailSentAt}
+                            emailAttempts={sub.emailAttempts}
+                            emailNextRetryAt={sub.emailNextRetryAt}
                             smsStatus={sub.smsStatus as NotificationStatus}
                             smsError={sub.smsError}
                             smsSentAt={sub.smsSentAt}
+                            smsAttempts={sub.smsAttempts}
+                            smsNextRetryAt={sub.smsNextRetryAt}
                             isResending={isResending}
                             onResend={() => handleResend(sub.id)}
                           />

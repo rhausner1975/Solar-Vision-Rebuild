@@ -689,9 +689,13 @@ components:
         emailStatus: { $ref: "#/components/schemas/NotificationStatus" }
         emailError: { type: ["string", "null"] }
         emailSentAt: { type: ["string", "null"], format: date-time }
+        emailAttempts: { type: integer }
+        emailNextRetryAt: { type: ["string", "null"], format: date-time }
         smsStatus: { $ref: "#/components/schemas/NotificationStatus" }
         smsError: { type: ["string", "null"] }
         smsSentAt: { type: ["string", "null"], format: date-time }
+        smsAttempts: { type: integer }
+        smsNextRetryAt: { type: ["string", "null"], format: date-time }
       required:
         [id, name, email, message, createdAt, emailStatus, smsStatus]
 
@@ -725,9 +729,13 @@ components:
         emailStatus: { $ref: "#/components/schemas/NotificationStatus" }
         emailError: { type: ["string", "null"] }
         emailSentAt: { type: ["string", "null"], format: date-time }
+        emailAttempts: { type: integer }
+        emailNextRetryAt: { type: ["string", "null"], format: date-time }
         smsStatus: { $ref: "#/components/schemas/NotificationStatus" }
         smsError: { type: ["string", "null"] }
         smsSentAt: { type: ["string", "null"], format: date-time }
+        smsAttempts: { type: integer }
+        smsNextRetryAt: { type: ["string", "null"], format: date-time }
       required: [id, name, email, createdAt, emailStatus, smsStatus]
 
     LoginInput:

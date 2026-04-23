@@ -80,11 +80,17 @@ export interface ContactSubmission {
   emailError?: string | null;
   /** @nullable */
   emailSentAt?: string | null;
+  emailAttempts?: number;
+  /** @nullable */
+  emailNextRetryAt?: string | null;
   smsStatus: NotificationStatus;
   /** @nullable */
   smsError?: string | null;
   /** @nullable */
   smsSentAt?: string | null;
+  smsAttempts?: number;
+  /** @nullable */
+  smsNextRetryAt?: string | null;
 }
 
 export interface EstimateRequestInput {
@@ -156,11 +162,17 @@ export interface EstimateRequest {
   emailError?: string | null;
   /** @nullable */
   emailSentAt?: string | null;
+  emailAttempts?: number;
+  /** @nullable */
+  emailNextRetryAt?: string | null;
   smsStatus: NotificationStatus;
   /** @nullable */
   smsError?: string | null;
   /** @nullable */
   smsSentAt?: string | null;
+  smsAttempts?: number;
+  /** @nullable */
+  smsNextRetryAt?: string | null;
 }
 
 export interface LoginInput {

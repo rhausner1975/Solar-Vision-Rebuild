@@ -8,6 +8,7 @@ import {
   notificationLogTable,
   inAppNotificationsTable,
 } from "@workspace/db";
+import { NOTIFICATION_MAX_ATTEMPTS } from "@workspace/api-zod";
 import { logger } from "./logger";
 
 const FALLBACK_TO = process.env["NOTIFY_EMAIL_TO"] ?? "info@vision9.biz";
@@ -31,7 +32,7 @@ export interface DeliveryOutcome {
   permanent?: boolean;
 }
 
-export const MAX_NOTIFICATION_ATTEMPTS = 3;
+export const MAX_NOTIFICATION_ATTEMPTS = NOTIFICATION_MAX_ATTEMPTS;
 const RETRY_DELAYS_MS = [3 * 60_000, 12 * 60_000];
 
 function nextRetryDelayMs(attemptsCompleted: number): number | null {

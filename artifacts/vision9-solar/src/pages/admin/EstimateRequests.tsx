@@ -151,9 +151,13 @@ export default function EstimateRequests() {
                             emailStatus={req.emailStatus as NotificationStatus}
                             emailError={req.emailError}
                             emailSentAt={req.emailSentAt}
+                            emailAttempts={req.emailAttempts}
+                            emailNextRetryAt={req.emailNextRetryAt}
                             smsStatus={req.smsStatus as NotificationStatus}
                             smsError={req.smsError}
                             smsSentAt={req.smsSentAt}
+                            smsAttempts={req.smsAttempts}
+                            smsNextRetryAt={req.smsNextRetryAt}
                             isResending={isResending}
                             onResend={() => handleResend(req.id)}
                           />

@@ -233,9 +233,13 @@ export const ListContactSubmissionsResponseItem = zod.object({
   emailStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
   emailError: zod.string().nullish(),
   emailSentAt: zod.coerce.date().nullish(),
+  emailAttempts: zod.number().optional(),
+  emailNextRetryAt: zod.coerce.date().nullish(),
   smsStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
   smsError: zod.string().nullish(),
   smsSentAt: zod.coerce.date().nullish(),
+  smsAttempts: zod.number().optional(),
+  smsNextRetryAt: zod.coerce.date().nullish(),
 });
 export const ListContactSubmissionsResponse = zod.array(
   ListContactSubmissionsResponseItem,
@@ -267,9 +271,13 @@ export const ResendContactSubmissionNotificationResponse = zod.object({
   emailStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
   emailError: zod.string().nullish(),
   emailSentAt: zod.coerce.date().nullish(),
+  emailAttempts: zod.number().optional(),
+  emailNextRetryAt: zod.coerce.date().nullish(),
   smsStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
   smsError: zod.string().nullish(),
   smsSentAt: zod.coerce.date().nullish(),
+  smsAttempts: zod.number().optional(),
+  smsNextRetryAt: zod.coerce.date().nullish(),
 });
 
 /**
@@ -290,9 +298,13 @@ export const ListEstimateRequestsResponseItem = zod.object({
   emailStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
   emailError: zod.string().nullish(),
   emailSentAt: zod.coerce.date().nullish(),
+  emailAttempts: zod.number().optional(),
+  emailNextRetryAt: zod.coerce.date().nullish(),
   smsStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
   smsError: zod.string().nullish(),
   smsSentAt: zod.coerce.date().nullish(),
+  smsAttempts: zod.number().optional(),
+  smsNextRetryAt: zod.coerce.date().nullish(),
 });
 export const ListEstimateRequestsResponse = zod.array(
   ListEstimateRequestsResponseItem,
@@ -328,9 +340,13 @@ export const ResendEstimateRequestNotificationResponse = zod.object({
   emailStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
   emailError: zod.string().nullish(),
   emailSentAt: zod.coerce.date().nullish(),
+  emailAttempts: zod.number().optional(),
+  emailNextRetryAt: zod.coerce.date().nullish(),
   smsStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
   smsError: zod.string().nullish(),
   smsSentAt: zod.coerce.date().nullish(),
+  smsAttempts: zod.number().optional(),
+  smsNextRetryAt: zod.coerce.date().nullish(),
 });
 
 /**

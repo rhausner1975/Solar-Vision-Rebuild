@@ -31,9 +31,15 @@ export interface EstimateRequest {
   emailError?: string | null;
   /** @nullable */
   emailSentAt?: Date | null;
+  emailAttempts?: number;
+  /** @nullable */
+  emailNextRetryAt?: Date | null;
   smsStatus: NotificationStatus;
   /** @nullable */
   smsError?: string | null;
   /** @nullable */
   smsSentAt?: Date | null;
+  smsAttempts?: number;
+  /** @nullable */
+  smsNextRetryAt?: Date | null;
 }
