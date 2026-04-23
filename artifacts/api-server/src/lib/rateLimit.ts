@@ -24,6 +24,16 @@ export const passwordResetConfirmLimiter = rateLimit({
   message: { error: "Too many attempts. Please try again later." },
 });
 
+export const testEmailLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: "Too many test emails sent. Please wait a minute before trying again.",
+  },
+});
+
 export const publicFormLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   limit: 20,

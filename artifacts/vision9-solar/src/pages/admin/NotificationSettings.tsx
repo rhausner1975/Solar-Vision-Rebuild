@@ -62,7 +62,18 @@ export default function NotificationSettings() {
           });
         }
       },
-      onError: () => {
+      onError: (error: unknown) => {
+        const apiError = error as { status?: number; data?: { error?: string } };
+        if (apiError?.status === 429) {
+          toast({
+            title: "Slow down",
+            description:
+              apiError.data?.error ??
+              "Too many test emails sent. Please wait a minute before trying again.",
+            variant: "destructive",
+          });
+          return;
+        }
         toast({
           title: "Could not send test email",
           description: "The request failed before the email could be sent.",

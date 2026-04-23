@@ -49,6 +49,7 @@ import {
   loginLimiter,
   passwordResetRequestLimiter,
   passwordResetConfirmLimiter,
+  testEmailLimiter,
 } from "../lib/rateLimit";
 import { sendMail, getAdminNotificationEmail } from "../lib/mailer";
 import { ObjectStorageService } from "../lib/objectStorage";
@@ -561,6 +562,7 @@ router.put("/admin/notification-settings", requireAdmin, async (req, res): Promi
 router.post(
   "/admin/notification-settings/test",
   requireAdmin,
+  testEmailLimiter,
   async (_req, res): Promise<void> => {
     const result = await sendTestNotificationEmail();
     res.json(result);
