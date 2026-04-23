@@ -6,6 +6,10 @@ import {
   pruneNotificationLog,
   startNotificationLogCleanup,
 } from "./lib/notificationLogCleanup";
+import {
+  pruneInAppNotifications,
+  startInAppNotificationsCleanup,
+} from "./lib/inAppNotificationsCleanup";
 
 const rawPort = process.env["PORT"];
 
@@ -25,6 +29,8 @@ if (Number.isNaN(port) || port <= 0) {
     await purgeExpiredSessions();
     await pruneNotificationLog();
     startNotificationLogCleanup();
+    await pruneInAppNotifications();
+    startInAppNotificationsCleanup();
   } catch (err) {
     logger.error({ err }, "Startup tasks failed");
   }

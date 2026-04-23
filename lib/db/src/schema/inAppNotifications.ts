@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { pgTable, serial, text, timestamp, index } from "drizzle-orm/pg-core";
 
 export const inAppNotificationsTable = pgTable(
@@ -12,6 +13,10 @@ export const inAppNotificationsTable = pgTable(
   },
   (table) => ({
     createdAtIdx: index("in_app_notifications_created_at_idx").on(table.createdAt),
+    unreadIdx: index("in_app_notifications_unread_idx")
+      .on(table.createdAt)
+      .where(sql`${table.readAt} IS NULL`),
+    readAtIdx: index("in_app_notifications_read_at_idx").on(table.readAt),
   }),
 );
 
