@@ -35,6 +35,13 @@ const formSchema = z.object({
     )
     .min(1, "Add at least one recipient")
     .max(20, "At most 20 recipients allowed"),
+  smsRecipient: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v === "" || /^\+[1-9]\d{1,14}$/.test(v),
+      "Enter a phone number in E.164 format (e.g. +15551234567)",
+    ),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -113,7 +120,7 @@ export default function NotificationSettings() {
             title: "SMS is not configured",
             description:
               result.error ??
-              "Twilio environment variables are missing. Set NOTIFY_SMS_TO, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER.",
+              "Save a phone number above (or set NOTIFY_SMS_TO) and configure Twilio (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER).",
             variant: "destructive",
           });
         } else {
@@ -137,7 +144,7 @@ export default function NotificationSettings() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { recipients: [{ email: "" }] },
+    defaultValues: { recipients: [{ email: "" }], smsRecipient: "" },
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -150,14 +157,20 @@ export default function NotificationSettings() {
       const recipients = data.recipients?.length
         ? data.recipients.map((email) => ({ email }))
         : [{ email: "" }];
-      form.reset({ recipients });
+      form.reset({ recipients, smsRecipient: data.smsRecipient ?? "" });
       setHydrated(true);
     }
   }, [data, form, hydrated]);
 
   function onSubmit(values: FormValues) {
+    const trimmedSms = values.smsRecipient.trim();
     update.mutate(
-      { data: { recipients: values.recipients.map((r) => r.email) } },
+      {
+        data: {
+          recipients: values.recipients.map((r) => r.email),
+          smsRecipient: trimmedSms === "" ? null : trimmedSms,
+        },
+      },
       {
         onSuccess: () => {
           toast({ title: "Notification recipients updated" });
@@ -227,6 +240,29 @@ export default function NotificationSettings() {
                   />
                 ))}
 
+                <FormField
+                  control={form.control}
+                  name="smsRecipient"
+                  render={({ field: inputField }) => (
+                    <FormItem className="pt-4 border-t">
+                      <FormLabel>SMS recipient phone number</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="tel"
+                          placeholder="+15551234567"
+                          autoComplete="off"
+                          {...inputField}
+                        />
+                      </FormControl>
+                      <p className="text-xs text-secondary">
+                        Phone number that receives a text message for new leads. Use E.164 format
+                        (country code with +). Leave blank to disable SMS alerts.
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="flex flex-wrap items-center gap-3 pt-2">
                   <Button
                     type="button"
@@ -262,8 +298,9 @@ export default function NotificationSettings() {
                 <p className="text-xs text-secondary pt-2">
                   If no recipients are configured, notifications fall back to the default address.
                   The test email uses the saved recipients on the server, so save your changes first
-                  if you've just edited the list. The test SMS goes to the phone number configured
-                  via the Twilio environment variables on the server.
+                  if you've just edited the list. The test SMS goes to the saved phone number above
+                  (or NOTIFY_SMS_TO if nothing is saved). Twilio credentials must also be configured
+                  on the server.
                 </p>
               </form>
             </Form>

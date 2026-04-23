@@ -367,6 +367,11 @@ export interface GalleryWithImages {
 
 export interface NotificationSettings {
   recipients: string[];
+  /**
+   * E.164-formatted phone number to receive SMS alerts; null if unset.
+   * @nullable
+   */
+  smsRecipient: string | null;
   updatedAt: string;
 }
 
@@ -392,6 +397,13 @@ export interface NotificationSettingsInput {
    * @maxItems 20
    */
   recipients: string[];
+  /**
+   * E.164-formatted phone number (e.g. +15551234567); null or empty to clear.
+   * @maxLength 20
+   * @nullable
+   * @pattern ^\+[1-9]\d{1,14}$
+   */
+  smsRecipient?: string | null;
 }
 
 export interface ImageVariantsStatus {

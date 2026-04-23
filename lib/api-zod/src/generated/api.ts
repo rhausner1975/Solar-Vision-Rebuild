@@ -546,6 +546,12 @@ export const BackfillImageVariantsResponse = zod.object({
  */
 export const GetNotificationSettingsResponse = zod.object({
   recipients: zod.array(zod.string().email()),
+  smsRecipient: zod
+    .string()
+    .nullable()
+    .describe(
+      "E.164-formatted phone number to receive SMS alerts; null if unset.",
+    ),
   updatedAt: zod.coerce.date(),
 });
 
@@ -556,6 +562,12 @@ export const updateNotificationSettingsBodyRecipientsItemMax = 320;
 
 export const updateNotificationSettingsBodyRecipientsMax = 20;
 
+export const updateNotificationSettingsBodySmsRecipientMax = 20;
+
+export const updateNotificationSettingsBodySmsRecipientRegExp = new RegExp(
+  "^\\+[1-9]\\d{1,14}$",
+);
+
 export const UpdateNotificationSettingsBody = zod.object({
   recipients: zod
     .array(
@@ -563,10 +575,24 @@ export const UpdateNotificationSettingsBody = zod.object({
     )
     .min(1)
     .max(updateNotificationSettingsBodyRecipientsMax),
+  smsRecipient: zod
+    .string()
+    .max(updateNotificationSettingsBodySmsRecipientMax)
+    .regex(updateNotificationSettingsBodySmsRecipientRegExp)
+    .nullish()
+    .describe(
+      "E.164-formatted phone number (e.g. +15551234567); null or empty to clear.",
+    ),
 });
 
 export const UpdateNotificationSettingsResponse = zod.object({
   recipients: zod.array(zod.string().email()),
+  smsRecipient: zod
+    .string()
+    .nullable()
+    .describe(
+      "E.164-formatted phone number to receive SMS alerts; null if unset.",
+    ),
   updatedAt: zod.coerce.date(),
 });
 

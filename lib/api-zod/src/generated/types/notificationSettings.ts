@@ -8,5 +8,10 @@
 
 export interface NotificationSettings {
   recipients: string[];
+  /**
+   * E.164-formatted phone number to receive SMS alerts; null if unset.
+   * @nullable
+   */
+  smsRecipient: string | null;
   updatedAt: Date;
 }

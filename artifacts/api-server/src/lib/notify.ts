@@ -11,7 +11,7 @@ import { logger } from "./logger";
 
 const FALLBACK_TO = process.env["NOTIFY_EMAIL_TO"] ?? "info@vision9.biz";
 
-const NOTIFY_SMS_TO = process.env["NOTIFY_SMS_TO"];
+const FALLBACK_SMS_TO = process.env["NOTIFY_SMS_TO"];
 const TWILIO_ACCOUNT_SID = process.env["TWILIO_ACCOUNT_SID"];
 const TWILIO_AUTH_TOKEN = process.env["TWILIO_AUTH_TOKEN"];
 const TWILIO_FROM_NUMBER = process.env["TWILIO_FROM_NUMBER"];
@@ -91,6 +91,17 @@ async function recordAttempt(params: {
   } catch (err) {
     logger.error({ err }, "Failed to record notification log entry");
   }
+}
+
+async function getSmsRecipient(): Promise<string | undefined> {
+  try {
+    const [row] = await db.select().from(notificationSettingsTable).limit(1);
+    const saved = row?.smsRecipient?.trim();
+    if (saved) return saved;
+  } catch (err) {
+    logger.error({ err }, "Failed to load SMS recipient from database");
+  }
+  return FALLBACK_SMS_TO?.trim() || undefined;
 }
 
 async function deliverEmail(
@@ -180,11 +191,12 @@ export async function sendTestNotificationEmail(): Promise<{
 }
 
 async function sendSms(message: string, related: RelatedRef): Promise<DeliveryOutcome> {
-  if (!NOTIFY_SMS_TO || !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
+  const recipient = await getSmsRecipient();
+  if (!recipient || !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
     return {
       status: "skipped",
       error:
-        "SMS not configured: NOTIFY_SMS_TO, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER must all be set",
+        "SMS not configured: a recipient phone number must be saved in Notification Settings (or set NOTIFY_SMS_TO), and TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER must all be set",
     };
   }
   const truncated =
@@ -194,7 +206,7 @@ async function sendSms(message: string, related: RelatedRef): Promise<DeliveryOu
   )}/Messages.json`;
   const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64");
   const body = new URLSearchParams({
-    To: NOTIFY_SMS_TO,
+    To: recipient,
     From: TWILIO_FROM_NUMBER,
     Body: truncated,
   });
@@ -212,7 +224,7 @@ async function sendSms(message: string, related: RelatedRef): Promise<DeliveryOu
       const error = `Twilio ${response.status}: ${text.slice(0, 500)}`;
       await recordAttempt({
         channel: "sms",
-        recipients: [NOTIFY_SMS_TO],
+        recipients: [recipient],
         subject: null,
         related,
         status: "failed",
@@ -222,7 +234,7 @@ async function sendSms(message: string, related: RelatedRef): Promise<DeliveryOu
     }
     await recordAttempt({
       channel: "sms",
-      recipients: [NOTIFY_SMS_TO],
+      recipients: [recipient],
       subject: null,
       related,
       status: "success",
@@ -233,7 +245,7 @@ async function sendSms(message: string, related: RelatedRef): Promise<DeliveryOu
     const error = err instanceof Error ? err.message : String(err);
     await recordAttempt({
       channel: "sms",
-      recipients: [NOTIFY_SMS_TO],
+      recipients: [recipient],
       subject: null,
       related,
       status: "failed",
@@ -249,42 +261,36 @@ export async function sendTestNotificationSms(): Promise<{
   configured: boolean;
   error?: string;
 }> {
-  if (!NOTIFY_SMS_TO || !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
+  const recipient = await getSmsRecipient();
+  if (!recipient || !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
     const missing = [
-      !NOTIFY_SMS_TO && "NOTIFY_SMS_TO",
+      !recipient && "a saved phone number in Notification Settings (or NOTIFY_SMS_TO env var)",
       !TWILIO_ACCOUNT_SID && "TWILIO_ACCOUNT_SID",
       !TWILIO_AUTH_TOKEN && "TWILIO_AUTH_TOKEN",
       !TWILIO_FROM_NUMBER && "TWILIO_FROM_NUMBER",
     ]
       .filter(Boolean)
       .join(", ");
-    logger.warn({ missing }, "Test SMS skipped: Twilio env vars not configured");
+    logger.warn({ missing }, "Test SMS skipped: not configured");
     return {
       delivered: false,
       configured: false,
-      error: `SMS is not configured. Missing environment variables: ${missing}`,
+      error: `SMS is not configured. Missing: ${missing}`,
     };
   }
   const message = `[TEST] Vision9 Solar SMS alert test sent at ${new Date().toISOString()}. If you received this, lead alerts to this number are working.`;
-  try {
-    await sendSms(message);
-    logger.info({ recipient: NOTIFY_SMS_TO }, "Sent test notification SMS");
-    return { delivered: true, configured: true, recipient: NOTIFY_SMS_TO };
-  } catch (err) {
-    logger.error({ err }, "Failed to send test notification SMS");
-    const errMessage = err instanceof Error ? err.message : "Unknown error";
-    return { delivered: false, configured: true, recipient: NOTIFY_SMS_TO, error: errMessage };
+  const outcome = await sendSms(message, { kind: "test", id: null });
+  if (outcome.status === "sent") {
+    logger.info({ recipient }, "Sent test notification SMS");
+    return { delivered: true, configured: true, recipient };
   }
-}
-
-function dispatchSms(message: string, context: string): void {
-  if (!NOTIFY_SMS_TO || !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
-    logger.warn({ context }, "SMS notification skipped: Twilio env vars not configured");
-    return;
-  }
-  sendSms(message).catch((err) => {
-    logger.error({ err, context }, "Failed to send SMS notification");
-  });
+  logger.error({ error: outcome.error, recipient }, "Failed to send test notification SMS");
+  return {
+    delivered: false,
+    configured: true,
+    recipient,
+    error: outcome.error ?? "Unknown error",
+  };
 }
 
 const DEFAULT_DEDUP_WINDOW_MS = 5 * 60 * 1000;

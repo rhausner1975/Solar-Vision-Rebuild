@@ -553,13 +553,23 @@ router.delete("/admin/gallery-images/:id", requireAdmin, async (req, res): Promi
 
 const FALLBACK_NOTIFY_TO = process.env["NOTIFY_EMAIL_TO"] ?? "info@vision9.biz";
 
+const FALLBACK_SMS_RECIPIENT = process.env["NOTIFY_SMS_TO"] ?? null;
+
 router.get("/admin/notification-settings", requireAdmin, async (_req, res): Promise<void> => {
   const [row] = await db.select().from(notificationSettingsTable).limit(1);
   if (!row) {
-    res.json({ recipients: [FALLBACK_NOTIFY_TO], updatedAt: new Date().toISOString() });
+    res.json({
+      recipients: [FALLBACK_NOTIFY_TO],
+      smsRecipient: FALLBACK_SMS_RECIPIENT,
+      updatedAt: new Date().toISOString(),
+    });
     return;
   }
-  res.json({ recipients: row.recipients, updatedAt: row.updatedAt });
+  res.json({
+    recipients: row.recipients,
+    smsRecipient: row.smsRecipient ?? FALLBACK_SMS_RECIPIENT,
+    updatedAt: row.updatedAt,
+  });
 });
 
 router.put("/admin/notification-settings", requireAdmin, async (req, res): Promise<void> => {
@@ -571,21 +581,28 @@ router.put("/admin/notification-settings", requireAdmin, async (req, res): Promi
   const recipients = Array.from(
     new Set(parsed.data.recipients.map((r) => r.trim().toLowerCase()).filter((r) => r.length > 0)),
   );
+  const rawSms = parsed.data.smsRecipient;
+  const trimmedSms = typeof rawSms === "string" ? rawSms.trim() : rawSms;
+  const smsRecipient = trimmedSms && trimmedSms.length > 0 ? trimmedSms : null;
   const [existing] = await db.select().from(notificationSettingsTable).limit(1);
   let row;
   if (existing) {
     [row] = await db
       .update(notificationSettingsTable)
-      .set({ recipients })
+      .set({ recipients, smsRecipient })
       .where(eq(notificationSettingsTable.id, existing.id))
       .returning();
   } else {
     [row] = await db
       .insert(notificationSettingsTable)
-      .values({ id: 1, recipients })
+      .values({ id: 1, recipients, smsRecipient })
       .returning();
   }
-  res.json({ recipients: row!.recipients, updatedAt: row!.updatedAt });
+  res.json({
+    recipients: row!.recipients,
+    smsRecipient: row!.smsRecipient,
+    updatedAt: row!.updatedAt,
+  });
 });
 
 router.post(
