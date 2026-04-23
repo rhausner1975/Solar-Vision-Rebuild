@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, LogOut, LayoutDashboard, MessageSquare, FileText, Image as ImageIcon, Key } from "lucide-react";
+import { ArrowLeft, LogOut, LayoutDashboard, MessageSquare, FileText, Image as ImageIcon, Key, Bell } from "lucide-react";
 import { useAdminMe, useAdminLogout, getAdminMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ const ADMIN_LINKS = [
   { href: "/admin/contact", label: "Contact Submissions", icon: MessageSquare },
   { href: "/admin/estimates", label: "Estimate Requests", icon: FileText },
   { href: "/admin/galleries", label: "Galleries", icon: ImageIcon },
+  { href: "/admin/notifications", label: "Notifications", icon: Bell },
   { href: "/admin/account", label: "Account", icon: Key },
 ];
 

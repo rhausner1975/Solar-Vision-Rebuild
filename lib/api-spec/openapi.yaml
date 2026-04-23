@@ -350,6 +350,38 @@ paths:
       responses:
         "204": { description: Deleted }
 
+  /admin/notification-settings:
+    get:
+      operationId: getNotificationSettings
+      tags: [admin]
+      summary: Get notification recipient list
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationSettings" }
+    put:
+      operationId: updateNotificationSettings
+      tags: [admin]
+      summary: Update notification recipient list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationSettingsInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationSettings" }
+        "400":
+          description: Invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+
   /storage/uploads/request-url:
     post:
       operationId: requestUploadUrl
@@ -524,6 +556,24 @@ components:
           type: array
           items: { $ref: "#/components/schemas/GalleryImage" }
       required: [id, slug, title, published, createdAt, images]
+
+    NotificationSettings:
+      type: object
+      properties:
+        recipients:
+          type: array
+          items: { type: string, format: email }
+        updatedAt: { type: string, format: date-time }
+      required: [recipients, updatedAt]
+    NotificationSettingsInput:
+      type: object
+      properties:
+        recipients:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { type: string, format: email, maxLength: 320 }
+      required: [recipients]
 
     RequestUploadUrlBody:
       type: object

@@ -33,6 +33,8 @@ import type {
   GalleryWithImages,
   HealthStatus,
   LoginInput,
+  NotificationSettings,
+  NotificationSettingsInput,
   RequestPasswordResetInput,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
@@ -1807,6 +1809,169 @@ export const useDeleteGalleryImage = <
   TContext
 > => {
   return useMutation(getDeleteGalleryImageMutationOptions(options));
+};
+
+/**
+ * @summary Get notification recipient list
+ */
+export const getGetNotificationSettingsUrl = () => {
+  return `/api/admin/notification-settings`;
+};
+
+export const getNotificationSettings = async (
+  options?: RequestInit,
+): Promise<NotificationSettings> => {
+  return customFetch<NotificationSettings>(getGetNotificationSettingsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetNotificationSettingsQueryKey = () => {
+  return [`/api/admin/notification-settings`] as const;
+};
+
+export const getGetNotificationSettingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getNotificationSettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getNotificationSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetNotificationSettingsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getNotificationSettings>>
+  > = ({ signal }) => getNotificationSettings({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getNotificationSettings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetNotificationSettingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getNotificationSettings>>
+>;
+export type GetNotificationSettingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get notification recipient list
+ */
+
+export function useGetNotificationSettings<
+  TData = Awaited<ReturnType<typeof getNotificationSettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getNotificationSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetNotificationSettingsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update notification recipient list
+ */
+export const getUpdateNotificationSettingsUrl = () => {
+  return `/api/admin/notification-settings`;
+};
+
+export const updateNotificationSettings = async (
+  notificationSettingsInput: NotificationSettingsInput,
+  options?: RequestInit,
+): Promise<NotificationSettings> => {
+  return customFetch<NotificationSettings>(getUpdateNotificationSettingsUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(notificationSettingsInput),
+  });
+};
+
+export const getUpdateNotificationSettingsMutationOptions = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateNotificationSettings>>,
+    TError,
+    { data: BodyType<NotificationSettingsInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateNotificationSettings>>,
+  TError,
+  { data: BodyType<NotificationSettingsInput> },
+  TContext
+> => {
+  const mutationKey = ["updateNotificationSettings"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateNotificationSettings>>,
+    { data: BodyType<NotificationSettingsInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateNotificationSettings(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateNotificationSettingsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateNotificationSettings>>
+>;
+export type UpdateNotificationSettingsMutationBody =
+  BodyType<NotificationSettingsInput>;
+export type UpdateNotificationSettingsMutationError = ErrorType<ApiError>;
+
+/**
+ * @summary Update notification recipient list
+ */
+export const useUpdateNotificationSettings = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateNotificationSettings>>,
+    TError,
+    { data: BodyType<NotificationSettingsInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateNotificationSettings>>,
+  TError,
+  { data: BodyType<NotificationSettingsInput> },
+  TContext
+> => {
+  return useMutation(getUpdateNotificationSettingsMutationOptions(options));
 };
 
 /**

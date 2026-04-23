@@ -7,6 +7,7 @@ import {
   estimateRequestsTable,
   galleriesTable,
   galleryImagesTable,
+  notificationSettingsTable,
 } from "@workspace/db";
 import {
   AdminLoginBody,
@@ -24,6 +25,7 @@ import {
   UpdateGalleryImageBody,
   UpdateGalleryImageParams,
   DeleteGalleryImageParams,
+  UpdateNotificationSettingsBody,
 } from "@workspace/api-zod";
 import {
   hashPassword,
@@ -399,6 +401,43 @@ router.delete("/admin/gallery-images/:id", requireAdmin, async (req, res): Promi
   }
   await db.delete(galleryImagesTable).where(eq(galleryImagesTable.id, params.data.id));
   res.status(204).end();
+});
+
+const FALLBACK_NOTIFY_TO = process.env["NOTIFY_EMAIL_TO"] ?? "info@vision9.biz";
+
+router.get("/admin/notification-settings", requireAdmin, async (_req, res): Promise<void> => {
+  const [row] = await db.select().from(notificationSettingsTable).limit(1);
+  if (!row) {
+    res.json({ recipients: [FALLBACK_NOTIFY_TO], updatedAt: new Date().toISOString() });
+    return;
+  }
+  res.json({ recipients: row.recipients, updatedAt: row.updatedAt });
+});
+
+router.put("/admin/notification-settings", requireAdmin, async (req, res): Promise<void> => {
+  const parsed = UpdateNotificationSettingsBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const recipients = Array.from(
+    new Set(parsed.data.recipients.map((r) => r.trim().toLowerCase()).filter((r) => r.length > 0)),
+  );
+  const [existing] = await db.select().from(notificationSettingsTable).limit(1);
+  let row;
+  if (existing) {
+    [row] = await db
+      .update(notificationSettingsTable)
+      .set({ recipients })
+      .where(eq(notificationSettingsTable.id, existing.id))
+      .returning();
+  } else {
+    [row] = await db
+      .insert(notificationSettingsTable)
+      .values({ id: 1, recipients })
+      .returning();
+  }
+  res.json({ recipients: row!.recipients, updatedAt: row!.updatedAt });
 });
 
 export default router;

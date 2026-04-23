@@ -1,12 +1,71 @@
+import { ReplitConnectors } from "@replit/connectors-sdk";
+import { db, notificationSettingsTable } from "@workspace/db";
 import { logger } from "./logger";
-import { sendMail } from "./mailer";
 
-const NOTIFY_TO = process.env["NOTIFY_EMAIL_TO"] ?? "info@vision9.biz";
+const FALLBACK_TO = process.env["NOTIFY_EMAIL_TO"] ?? "info@vision9.biz";
+
 const NOTIFY_SMS_TO = process.env["NOTIFY_SMS_TO"];
 const TWILIO_ACCOUNT_SID = process.env["TWILIO_ACCOUNT_SID"];
 const TWILIO_AUTH_TOKEN = process.env["TWILIO_AUTH_TOKEN"];
 const TWILIO_FROM_NUMBER = process.env["TWILIO_FROM_NUMBER"];
 const SMS_MAX_LENGTH = 320;
+
+const connectors = new ReplitConnectors();
+
+function sanitizeHeader(value: string): string {
+  return value.replace(/[\r\n]+/g, " ").trim().slice(0, 200);
+}
+
+function buildRfc822(to: string, subject: string, body: string): string {
+  const lines = [
+    `To: ${sanitizeHeader(to)}`,
+    `Subject: ${sanitizeHeader(subject)}`,
+    "MIME-Version: 1.0",
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: 7bit",
+    "",
+    body,
+  ];
+  return lines.join("\r\n");
+}
+
+function base64UrlEncode(input: string): string {
+  return Buffer.from(input, "utf8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+async function getRecipients(): Promise<string[]> {
+  try {
+    const [row] = await db.select().from(notificationSettingsTable).limit(1);
+    const recipients = row?.recipients ?? [];
+    if (recipients.length > 0) return recipients;
+  } catch (err) {
+    logger.error({ err }, "Failed to load notification recipients from database");
+  }
+  return [FALLBACK_TO];
+}
+
+async function sendEmail(subject: string, body: string): Promise<void> {
+  const recipients = await getRecipients();
+  const toHeader = recipients.join(", ");
+  const raw = base64UrlEncode(buildRfc822(toHeader, subject, body));
+  const response = await connectors.proxy(
+    "google-mail",
+    "/gmail/v1/users/me/messages/send",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ raw }),
+    },
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Gmail send failed: ${response.status} ${text}`);
+  }
+}
 
 async function sendSms(message: string): Promise<void> {
   if (!NOTIFY_SMS_TO || !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
@@ -54,18 +113,6 @@ function fmtField(label: string, value: unknown): string {
   return `${label}: ${String(value)}`;
 }
 
-async function sendNotification(subject: string, body: string): Promise<void> {
-  await sendMail({
-    to: NOTIFY_TO,
-    subject,
-    text: body,
-    html: `<pre style="font-family:inherit;white-space:pre-wrap">${body
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")}</pre>`,
-  });
-}
-
 export interface ContactSubmissionPayload {
   name: string;
   email: string;
@@ -86,7 +133,7 @@ export function notifyContactSubmission(data: ContactSubmissionPayload): void {
     data.message,
   ].join("\n");
 
-  sendNotification(subject, body).catch((err) => {
+  sendEmail(subject, body).catch((err) => {
     logger.error({ err }, "Failed to send contact submission notification email");
   });
 
@@ -111,7 +158,7 @@ export function notifyEstimateRequest(data: Record<string, unknown>): void {
     }
   }
 
-  sendNotification(subject, lines.join("\n")).catch((err) => {
+  sendEmail(subject, lines.join("\n")).catch((err) => {
     logger.error({ err }, "Failed to send estimate request notification email");
   });
 

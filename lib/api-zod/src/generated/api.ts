@@ -370,6 +370,35 @@ export const DeleteGalleryImageParams = zod.object({
 });
 
 /**
+ * @summary Get notification recipient list
+ */
+export const GetNotificationSettingsResponse = zod.object({
+  recipients: zod.array(zod.string().email()),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update notification recipient list
+ */
+export const updateNotificationSettingsBodyRecipientsItemMax = 320;
+
+export const updateNotificationSettingsBodyRecipientsMax = 20;
+
+export const UpdateNotificationSettingsBody = zod.object({
+  recipients: zod
+    .array(
+      zod.string().email().max(updateNotificationSettingsBodyRecipientsItemMax),
+    )
+    .min(1)
+    .max(updateNotificationSettingsBodyRecipientsMax),
+});
+
+export const UpdateNotificationSettingsResponse = zod.object({
+  recipients: zod.array(zod.string().email()),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
  * @summary Get a presigned upload URL
  */
 export const RequestUploadUrlBody = zod.object({

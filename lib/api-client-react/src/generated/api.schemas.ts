@@ -270,6 +270,19 @@ export interface GalleryWithImages {
   images: GalleryImage[];
 }
 
+export interface NotificationSettings {
+  recipients: string[];
+  updatedAt: string;
+}
+
+export interface NotificationSettingsInput {
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  recipients: string[];
+}
+
 export interface RequestUploadUrlBody {
   name: string;
   size: number;

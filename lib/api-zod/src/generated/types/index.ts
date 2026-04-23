@@ -22,6 +22,8 @@ export * from "./galleryInput";
 export * from "./galleryWithImages";
 export * from "./healthStatus";
 export * from "./loginInput";
+export * from "./notificationSettings";
+export * from "./notificationSettingsInput";
 export * from "./requestPasswordResetInput";
 export * from "./requestUploadUrlBody";
 export * from "./requestUploadUrlResponse";

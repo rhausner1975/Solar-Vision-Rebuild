@@ -29,6 +29,7 @@ import AdminEstimates from "@/pages/admin/EstimateRequests";
 import AdminGalleries from "@/pages/admin/Galleries";
 import AdminGalleryEdit from "@/pages/admin/GalleryEdit";
 import AdminAccount from "@/pages/admin/Account";
+import AdminNotifications from "@/pages/admin/NotificationSettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +73,7 @@ function Router() {
           <Route path="/admin/galleries" component={AdminGalleries} />
           <Route path="/admin/galleries/:id" component={AdminGalleryEdit} />
           <Route path="/admin/account" component={AdminAccount} />
+          <Route path="/admin/notifications" component={AdminNotifications} />
           <Route component={NotFound} />
         </Switch>
       </AdminShell>
