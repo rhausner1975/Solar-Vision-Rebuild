@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { CheckCircle2, Server, Network, ShieldCheck, DatabaseBackup } from "lucide-react";
-import img1 from "@/assets/source/Asset-10-q50vk4591dtgi2njtxbdx4vebhe3kac91ayvc8jg1s.png";
+import img1 from "@/assets/source/inverter-wiring.jpg";
 
 export default function Services() {
   return (
@@ -64,7 +64,7 @@ export default function Services() {
             </div>
             
             <div className="mt-8">
-               <img src={img1} alt="Solar and IT services" className="w-full rounded shadow-lg" />
+               <img src={img1} alt="Dual SMA inverters wired and commissioned by Vision9 Solar technicians" className="w-full h-72 rounded shadow-lg object-cover" loading="lazy" />
             </div>
           </div>
         </div>

@@ -2,9 +2,9 @@ import { Link } from "wouter";
 import { Helmet } from "react-helmet-async";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import heroImg from "@/assets/source/Asset-1.png";
-import builderImg from "@/assets/source/Asset-4-2-1024x542.png";
-import reliabilityImg from "@/assets/source/Asset-7-768x323.png";
+import heroImg from "@/assets/source/hero-ground-mount-install.jpg";
+import builderImg from "@/assets/source/commercial-rooftop-array.jpg";
+import reliabilityImg from "@/assets/source/crew-installing-frame.jpg";
 
 export default function Home() {
   return (
@@ -35,7 +35,7 @@ export default function Home() {
             </div>
           </div>
           <div className="relative z-10">
-            <img src={heroImg} alt="Solar panel installation" className="w-full h-auto drop-shadow-xl" />
+            <img src={heroImg} alt="Vision9 Solar ground-mount array installation at golden hour in rural Ontario" className="w-full h-auto rounded-lg shadow-2xl object-cover aspect-[4/3]" loading="eager" />
           </div>
         </div>
       </section>
@@ -52,7 +52,7 @@ export default function Home() {
 
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="order-2 md:order-1">
-              <img src={builderImg} alt="Remote power solutions" className="w-full rounded shadow-lg" />
+              <img src={builderImg} alt="Vision9 Solar commercial rooftop solar array — Kirkland Lake, Ontario" className="w-full h-72 rounded shadow-lg object-cover" loading="lazy" />
             </div>
             <div className="order-1 md:order-2 space-y-6">
               <h3 className="text-2xl font-bold text-foreground">Hassel-Free Power Anywhere</h3>
@@ -100,7 +100,7 @@ export default function Home() {
               </Button>
             </div>
             <div>
-              <img src={reliabilityImg} alt="High quality solar solutions" className="w-full rounded shadow-lg" />
+              <img src={reliabilityImg} alt="Vision9 Solar crew assembling a residential ground-mount system" className="w-full h-96 rounded shadow-lg object-cover" loading="lazy" />
             </div>
           </div>
         </div>

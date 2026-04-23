@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { Wrench, Zap, CheckCircle2 } from "lucide-react";
-import img from "@/assets/source/Asset-6-q50tidp0x8vpr9rae1wybqporctjr1m9kcno2tv85c.png";
+import img from "@/assets/source/finished-residential-array.jpg";
 
 export default function About() {
   return (
@@ -52,7 +52,7 @@ export default function About() {
             </p>
           </div>
           <div>
-            <img src={img} alt="Engineering and automation expertise" className="w-full rounded shadow-lg" />
+            <img src={img} alt="Completed Vision9 Solar residential installation by the engineering team" className="w-full h-[28rem] rounded shadow-lg object-cover" loading="lazy" />
           </div>
         </div>
       </section>
