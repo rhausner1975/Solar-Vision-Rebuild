@@ -402,6 +402,18 @@ paths:
       responses:
         "204": { description: Deleted }
 
+  /admin/storage/image-variants-status:
+    get:
+      operationId: getImageVariantsStatus
+      tags: [storage, admin]
+      summary: Count gallery images that are missing WebP thumb/medium variants
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImageVariantsStatus" }
+
   /admin/storage/backfill-image-variants:
     post:
       operationId: backfillImageVariants
@@ -727,6 +739,14 @@ components:
           maxItems: 20
           items: { type: string, format: email, maxLength: 320 }
       required: [recipients]
+
+    ImageVariantsStatus:
+      type: object
+      properties:
+        totalImages: { type: integer }
+        missingThumb: { type: integer }
+        missingMedium: { type: integer }
+      required: [totalImages, missingThumb, missingMedium]
 
     BackfillImageVariantsResult:
       type: object

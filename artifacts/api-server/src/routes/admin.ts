@@ -464,6 +464,20 @@ router.post("/admin/galleries/:id/images", requireAdmin, async (req, res): Promi
   res.status(201).json(row);
 });
 
+// Admin-only: report how many gallery images are missing thumb/medium WebP
+// variants so admins can decide whether a backfill is needed.
+router.get("/admin/storage/image-variants-status", requireAdmin, async (_req, res): Promise<void> => {
+  const rows = await db.select().from(galleryImagesTable);
+  let missingThumb = 0;
+  let missingMedium = 0;
+  for (const row of rows) {
+    const status = await objectStorageService.checkImageVariants(row.objectPath);
+    if (!status.thumb) missingThumb += 1;
+    if (!status.medium) missingMedium += 1;
+  }
+  res.json({ totalImages: rows.length, missingThumb, missingMedium });
+});
+
 // Admin-only: backfill thumb/medium WebP variants for every gallery image.
 // Idempotent — already-present variants are skipped unless ?force=1 is set.
 router.post("/admin/storage/backfill-image-variants", requireAdmin, async (req, res): Promise<void> => {

@@ -394,6 +394,12 @@ export interface NotificationSettingsInput {
   recipients: string[];
 }
 
+export interface ImageVariantsStatus {
+  totalImages: number;
+  missingThumb: number;
+  missingMedium: number;
+}
+
 export interface BackfillImageVariantsResult {
   total: number;
   processed: number;

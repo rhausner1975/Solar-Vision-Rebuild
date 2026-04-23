@@ -24,6 +24,7 @@ export * from "./galleryImageUpdate";
 export * from "./galleryInput";
 export * from "./galleryWithImages";
 export * from "./healthStatus";
+export * from "./imageVariantsStatus";
 export * from "./loginInput";
 export * from "./notificationSettings";
 export * from "./notificationSettingsInput";

@@ -34,6 +34,7 @@ import type {
   GalleryInput,
   GalleryWithImages,
   HealthStatus,
+  ImageVariantsStatus,
   LoginInput,
   NotificationSettings,
   NotificationSettingsInput,
@@ -2003,6 +2004,82 @@ export const useDeleteGalleryImage = <
 > => {
   return useMutation(getDeleteGalleryImageMutationOptions(options));
 };
+
+/**
+ * @summary Count gallery images that are missing WebP thumb/medium variants
+ */
+export const getGetImageVariantsStatusUrl = () => {
+  return `/api/admin/storage/image-variants-status`;
+};
+
+export const getImageVariantsStatus = async (
+  options?: RequestInit,
+): Promise<ImageVariantsStatus> => {
+  return customFetch<ImageVariantsStatus>(getGetImageVariantsStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetImageVariantsStatusQueryKey = () => {
+  return [`/api/admin/storage/image-variants-status`] as const;
+};
+
+export const getGetImageVariantsStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getImageVariantsStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getImageVariantsStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetImageVariantsStatusQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getImageVariantsStatus>>
+  > = ({ signal }) => getImageVariantsStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getImageVariantsStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetImageVariantsStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getImageVariantsStatus>>
+>;
+export type GetImageVariantsStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Count gallery images that are missing WebP thumb/medium variants
+ */
+
+export function useGetImageVariantsStatus<
+  TData = Awaited<ReturnType<typeof getImageVariantsStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getImageVariantsStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetImageVariantsStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Regenerate WebP thumb/medium variants for every gallery image

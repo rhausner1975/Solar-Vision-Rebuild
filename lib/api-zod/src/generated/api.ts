@@ -516,6 +516,15 @@ export const DeleteGalleryImageParams = zod.object({
 });
 
 /**
+ * @summary Count gallery images that are missing WebP thumb/medium variants
+ */
+export const GetImageVariantsStatusResponse = zod.object({
+  totalImages: zod.number(),
+  missingThumb: zod.number(),
+  missingMedium: zod.number(),
+});
+
+/**
  * @summary Regenerate WebP thumb/medium variants for every gallery image
  */
 export const BackfillImageVariantsQueryParams = zod.object({

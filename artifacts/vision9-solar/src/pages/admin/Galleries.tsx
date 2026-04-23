@@ -7,6 +7,8 @@ import {
   useCreateGallery,
   useDeleteGallery,
   useBackfillImageVariants,
+  useGetImageVariantsStatus,
+  getGetImageVariantsStatusQueryKey,
   getListGalleriesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,6 +40,7 @@ export default function GalleriesAdmin() {
   const createGallery = useCreateGallery();
   const deleteGallery = useDeleteGallery();
   const backfillVariants = useBackfillImageVariants();
+  const variantsStatus = useGetImageVariantsStatus();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [forceConfirmOpen, setForceConfirmOpen] = useState(false);
@@ -51,6 +54,7 @@ export default function GalleriesAdmin() {
             title: force ? "Force regenerate complete" : "Backfill complete",
             description: `Total: ${result.total} · Processed: ${result.processed} · Variants generated: ${result.generated} · Failed: ${result.failed}`,
           });
+          queryClient.invalidateQueries({ queryKey: getGetImageVariantsStatusQueryKey() });
         },
         onError: () => {
           toast({
@@ -102,6 +106,21 @@ export default function GalleriesAdmin() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Galleries</h1>
             <p className="text-secondary">Manage portfolio galleries.</p>
+            <p
+              className="text-sm text-muted-foreground mt-1"
+              data-testid="text-image-variants-status"
+            >
+              {variantsStatus.isLoading
+                ? "Checking image variants..."
+                : variantsStatus.isError || !variantsStatus.data
+                  ? "Image variant status unavailable."
+                  : variantsStatus.data.totalImages === 0
+                    ? "No gallery images yet."
+                    : variantsStatus.data.missingThumb === 0 &&
+                        variantsStatus.data.missingMedium === 0
+                      ? `All ${variantsStatus.data.totalImages} images have WebP variants.`
+                      : `${variantsStatus.data.missingThumb} of ${variantsStatus.data.totalImages} images missing thumb · ${variantsStatus.data.missingMedium} of ${variantsStatus.data.totalImages} missing medium WebP variants.`}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Button

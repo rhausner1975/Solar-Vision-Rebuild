@@ -272,6 +272,29 @@ export class ObjectStorageService {
     return generated;
   }
 
+  /**
+   * Check whether the thumb/medium WebP variants exist for a given gallery
+   * image objectPath. Returns a flag per known variant. Errors resolving the
+   * file are treated as "missing" so a single broken object doesn't poison
+   * the aggregate status.
+   */
+  async checkImageVariants(
+    objectPath: string,
+  ): Promise<Record<ImageVariant, boolean>> {
+    const result = { thumb: false, medium: false } as Record<ImageVariant, boolean>;
+    for (const variant of Object.keys(VARIANT_CONFIG) as ImageVariant[]) {
+      const variantPath = `${objectPath}${IMAGE_VARIANT_SUFFIXES[variant]}`;
+      try {
+        const file = this.resolveObjectEntityFile(variantPath);
+        const [exists] = await file.exists();
+        result[variant] = exists;
+      } catch {
+        result[variant] = false;
+      }
+    }
+    return result;
+  }
+
   async canAccessObjectEntity({
     userId,
     objectFile,
