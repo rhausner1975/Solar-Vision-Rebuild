@@ -5,6 +5,7 @@
  * Vision9 Solar API — public forms, admin auth, gallery CMS, object uploads.
  * OpenAPI spec version: 0.1.0
  */
+import type { NotificationStatus } from "./notificationStatus";
 
 export interface EstimateRequest {
   id: number;
@@ -25,4 +26,14 @@ export interface EstimateRequest {
   /** @nullable */
   notes?: string | null;
   createdAt: Date;
+  emailStatus: NotificationStatus;
+  /** @nullable */
+  emailError?: string | null;
+  /** @nullable */
+  emailSentAt?: Date | null;
+  smsStatus: NotificationStatus;
+  /** @nullable */
+  smsError?: string | null;
+  /** @nullable */
+  smsSentAt?: Date | null;
 }

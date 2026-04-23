@@ -31,18 +31,28 @@ export interface SendMailInput {
   html?: string;
 }
 
-export async function sendMail(input: SendMailInput): Promise<{ delivered: boolean }> {
+export type DeliveryStatus = "sent" | "failed" | "skipped";
+
+export interface SendMailResult {
+  status: DeliveryStatus;
+  /** True for backward compatibility with prior callers. */
+  delivered: boolean;
+  error?: string;
+  id?: string;
+}
+
+export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
   const client = getClient();
   if (!client) {
-    // Do NOT log the email body. For password-reset emails the body contains a
-    // live one-time token; logging it would put the token in plaintext in the
-    // server logs and effectively defeat the reset flow. Operators must set
-    // RESEND_API_KEY (or another configured transport) for delivery.
     logger.warn(
       { to: input.to, subject: input.subject },
       "RESEND_API_KEY not set; email not sent. Configure a mail transport.",
     );
-    return { delivered: false };
+    return {
+      status: "skipped",
+      delivered: false,
+      error: "RESEND_API_KEY not configured",
+    };
   }
   try {
     const result = await client.emails.send({
@@ -57,15 +67,23 @@ export async function sendMail(input: SendMailInput): Promise<{ delivered: boole
         { err: result.error, to: input.to, subject: input.subject },
         "Resend rejected email",
       );
-      return { delivered: false };
+      return {
+        status: "failed",
+        delivered: false,
+        error: result.error.message ?? String(result.error),
+      };
     }
     logger.info(
       { to: input.to, subject: input.subject, id: result.data?.id },
       "Email sent via Resend",
     );
-    return { delivered: true };
+    return { status: "sent", delivered: true, id: result.data?.id };
   } catch (err) {
     logger.error({ err, to: input.to, subject: input.subject }, "Failed to send email via Resend");
-    return { delivered: false };
+    return {
+      status: "failed",
+      delivered: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }

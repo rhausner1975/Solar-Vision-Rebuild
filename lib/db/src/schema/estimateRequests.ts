@@ -12,6 +12,12 @@ export const estimateRequestsTable = pgTable("estimate_requests", {
   timeline: text("timeline"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  emailStatus: text("email_status").notNull().default("pending"),
+  emailError: text("email_error"),
+  emailSentAt: timestamp("email_sent_at", { withTimezone: true }),
+  smsStatus: text("sms_status").notNull().default("pending"),
+  smsError: text("sms_error"),
+  smsSentAt: timestamp("sms_sent_at", { withTimezone: true }),
 });
 
 export type EstimateRequest = typeof estimateRequestsTable.$inferSelect;

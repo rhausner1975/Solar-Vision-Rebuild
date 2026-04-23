@@ -20,6 +20,10 @@ import {
   DeleteGalleryParams,
   DeleteContactSubmissionParams,
   DeleteEstimateRequestParams,
+  ResendContactSubmissionNotificationParams,
+  ResendContactSubmissionNotificationBody,
+  ResendEstimateRequestNotificationParams,
+  ResendEstimateRequestNotificationBody,
   AddGalleryImageBody,
   AddGalleryImageParams,
   UpdateGalleryImageBody,
@@ -48,7 +52,12 @@ import {
 } from "../lib/rateLimit";
 import { sendMail, getAdminNotificationEmail } from "../lib/mailer";
 import { ObjectStorageService } from "../lib/objectStorage";
-import { sendTestNotificationEmail } from "../lib/notify";
+import {
+  resendContactNotification,
+  resendEstimateNotification,
+  sendTestNotificationEmail,
+  type Channel,
+} from "../lib/notify";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -266,6 +275,43 @@ router.get("/admin/contact-submissions", requireAdmin, async (_req, res): Promis
   res.json(rows);
 });
 
+router.post(
+  "/admin/contact-submissions/:id/resend-notification",
+  sameOriginGuard,
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const params = ResendContactSubmissionNotificationParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+    const body = ResendContactSubmissionNotificationBody.safeParse(req.body ?? {});
+    if (!body.success) {
+      res.status(400).json({ error: body.error.message });
+      return;
+    }
+    const [row] = await db
+      .select()
+      .from(contactSubmissionsTable)
+      .where(eq(contactSubmissionsTable.id, params.data.id));
+    if (!row) {
+      res.status(404).json({ error: "Submission not found" });
+      return;
+    }
+    const channels = (body.data.channels ?? ["email", "sms"]) as Channel[];
+    await resendContactNotification(
+      row.id,
+      { name: row.name, email: row.email, phone: row.phone, message: row.message },
+      channels,
+    );
+    const [updated] = await db
+      .select()
+      .from(contactSubmissionsTable)
+      .where(eq(contactSubmissionsTable.id, params.data.id));
+    res.json(updated);
+  },
+);
+
 router.delete("/admin/contact-submissions/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = DeleteContactSubmissionParams.safeParse(req.params);
   if (!params.success) {
@@ -283,6 +329,41 @@ router.get("/admin/estimate-requests", requireAdmin, async (_req, res): Promise<
     .orderBy(desc(estimateRequestsTable.createdAt));
   res.json(rows);
 });
+
+router.post(
+  "/admin/estimate-requests/:id/resend-notification",
+  sameOriginGuard,
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const params = ResendEstimateRequestNotificationParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+    const body = ResendEstimateRequestNotificationBody.safeParse(req.body ?? {});
+    if (!body.success) {
+      res.status(400).json({ error: body.error.message });
+      return;
+    }
+    const [row] = await db
+      .select()
+      .from(estimateRequestsTable)
+      .where(eq(estimateRequestsTable.id, params.data.id));
+    if (!row) {
+      res.status(404).json({ error: "Estimate request not found" });
+      return;
+    }
+    const channels = (body.data.channels ?? ["email", "sms"]) as Channel[];
+    const { id: _id, createdAt: _createdAt, emailStatus: _es, emailError: _ee, emailSentAt: _esa,
+      smsStatus: _ss, smsError: _se, smsSentAt: _ssa, ...estimateData } = row;
+    await resendEstimateNotification(row.id, estimateData as Record<string, unknown>, channels);
+    const [updated] = await db
+      .select()
+      .from(estimateRequestsTable)
+      .where(eq(estimateRequestsTable.id, params.data.id));
+    res.json(updated);
+  },
+);
 
 router.delete("/admin/estimate-requests/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = DeleteEstimateRequestParams.safeParse(req.params);

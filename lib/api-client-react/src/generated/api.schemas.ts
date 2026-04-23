@@ -43,6 +43,28 @@ export interface ContactSubmissionInput {
   message: string;
 }
 
+export type NotificationStatus =
+  (typeof NotificationStatus)[keyof typeof NotificationStatus];
+
+export const NotificationStatus = {
+  pending: "pending",
+  sent: "sent",
+  failed: "failed",
+  skipped: "skipped",
+} as const;
+
+export type ResendNotificationInputChannelsItem =
+  (typeof ResendNotificationInputChannelsItem)[keyof typeof ResendNotificationInputChannelsItem];
+
+export const ResendNotificationInputChannelsItem = {
+  email: "email",
+  sms: "sms",
+} as const;
+
+export interface ResendNotificationInput {
+  channels?: ResendNotificationInputChannelsItem[];
+}
+
 export interface ContactSubmission {
   id: number;
   name: string;
@@ -53,6 +75,16 @@ export interface ContactSubmission {
   subject?: string | null;
   message: string;
   createdAt: string;
+  emailStatus: NotificationStatus;
+  /** @nullable */
+  emailError?: string | null;
+  /** @nullable */
+  emailSentAt?: string | null;
+  smsStatus: NotificationStatus;
+  /** @nullable */
+  smsError?: string | null;
+  /** @nullable */
+  smsSentAt?: string | null;
 }
 
 export interface EstimateRequestInput {
@@ -119,6 +151,16 @@ export interface EstimateRequest {
   /** @nullable */
   notes?: string | null;
   createdAt: string;
+  emailStatus: NotificationStatus;
+  /** @nullable */
+  emailError?: string | null;
+  /** @nullable */
+  emailSentAt?: string | null;
+  smsStatus: NotificationStatus;
+  /** @nullable */
+  smsError?: string | null;
+  /** @nullable */
+  smsSentAt?: string | null;
 }
 
 export interface LoginInput {

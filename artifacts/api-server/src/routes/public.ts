@@ -27,7 +27,7 @@ router.post("/contact-submissions", publicFormLimiter, async (req, res): Promise
     .insert(contactSubmissionsTable)
     .values(parsed.data)
     .returning({ id: contactSubmissionsTable.id });
-  notifyContactSubmission(parsed.data);
+  notifyContactSubmission(row.id, parsed.data);
   res.status(201).json({ id: row.id, ok: true });
 });
 
@@ -41,7 +41,7 @@ router.post("/estimate-requests", publicFormLimiter, async (req, res): Promise<v
     .insert(estimateRequestsTable)
     .values(parsed.data)
     .returning({ id: estimateRequestsTable.id });
-  notifyEstimateRequest(parsed.data as Record<string, unknown>);
+  notifyEstimateRequest(row.id, parsed.data as Record<string, unknown>);
   res.status(201).json({ id: row.id, ok: true });
 });
 

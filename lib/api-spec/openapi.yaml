@@ -215,6 +215,32 @@ paths:
           schema: { type: integer }
       responses:
         "204": { description: Deleted }
+  /admin/contact-submissions/{id}/resend-notification:
+    post:
+      operationId: resendContactSubmissionNotification
+      tags: [admin]
+      summary: Re-send the email/SMS alert for a contact submission
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResendNotificationInput" }
+      responses:
+        "200":
+          description: Updated submission with new delivery status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContactSubmission" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
 
   /admin/estimate-requests:
     get:
@@ -240,6 +266,32 @@ paths:
           schema: { type: integer }
       responses:
         "204": { description: Deleted }
+  /admin/estimate-requests/{id}/resend-notification:
+    post:
+      operationId: resendEstimateRequestNotification
+      tags: [admin]
+      summary: Re-send the email/SMS alert for an estimate request
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResendNotificationInput" }
+      responses:
+        "200":
+          description: Updated estimate request with new delivery status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EstimateRequest" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
 
   /admin/galleries:
     get:
@@ -437,6 +489,17 @@ components:
         subject: { type: ["string", "null"], maxLength: 300 }
         message: { type: string, minLength: 1, maxLength: 5000 }
       required: [name, email, message]
+    NotificationStatus:
+      type: string
+      enum: [pending, sent, failed, skipped]
+    ResendNotificationInput:
+      type: object
+      properties:
+        channels:
+          type: array
+          items:
+            type: string
+            enum: [email, sms]
     ContactSubmission:
       type: object
       properties:
@@ -447,7 +510,14 @@ components:
         subject: { type: ["string", "null"] }
         message: { type: string }
         createdAt: { type: string, format: date-time }
-      required: [id, name, email, message, createdAt]
+        emailStatus: { $ref: "#/components/schemas/NotificationStatus" }
+        emailError: { type: ["string", "null"] }
+        emailSentAt: { type: ["string", "null"], format: date-time }
+        smsStatus: { $ref: "#/components/schemas/NotificationStatus" }
+        smsError: { type: ["string", "null"] }
+        smsSentAt: { type: ["string", "null"], format: date-time }
+      required:
+        [id, name, email, message, createdAt, emailStatus, smsStatus]
 
     EstimateRequestInput:
       type: object
@@ -476,7 +546,13 @@ components:
         timeline: { type: ["string", "null"] }
         notes: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
-      required: [id, name, email, createdAt]
+        emailStatus: { $ref: "#/components/schemas/NotificationStatus" }
+        emailError: { type: ["string", "null"] }
+        emailSentAt: { type: ["string", "null"], format: date-time }
+        smsStatus: { $ref: "#/components/schemas/NotificationStatus" }
+        smsError: { type: ["string", "null"] }
+        smsSentAt: { type: ["string", "null"], format: date-time }
+      required: [id, name, email, createdAt, emailStatus, smsStatus]
 
     LoginInput:
       type: object

@@ -230,6 +230,12 @@ export const ListContactSubmissionsResponseItem = zod.object({
   subject: zod.string().nullish(),
   message: zod.string(),
   createdAt: zod.coerce.date(),
+  emailStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
+  emailError: zod.string().nullish(),
+  emailSentAt: zod.coerce.date().nullish(),
+  smsStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
+  smsError: zod.string().nullish(),
+  smsSentAt: zod.coerce.date().nullish(),
 });
 export const ListContactSubmissionsResponse = zod.array(
   ListContactSubmissionsResponseItem,
@@ -237,6 +243,33 @@ export const ListContactSubmissionsResponse = zod.array(
 
 export const DeleteContactSubmissionParams = zod.object({
   id: zod.coerce.number(),
+});
+
+/**
+ * @summary Re-send the email/SMS alert for a contact submission
+ */
+export const ResendContactSubmissionNotificationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ResendContactSubmissionNotificationBody = zod.object({
+  channels: zod.array(zod.enum(["email", "sms"])).optional(),
+});
+
+export const ResendContactSubmissionNotificationResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  phone: zod.string().nullish(),
+  subject: zod.string().nullish(),
+  message: zod.string(),
+  createdAt: zod.coerce.date(),
+  emailStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
+  emailError: zod.string().nullish(),
+  emailSentAt: zod.coerce.date().nullish(),
+  smsStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
+  smsError: zod.string().nullish(),
+  smsSentAt: zod.coerce.date().nullish(),
 });
 
 /**
@@ -254,6 +287,12 @@ export const ListEstimateRequestsResponseItem = zod.object({
   timeline: zod.string().nullish(),
   notes: zod.string().nullish(),
   createdAt: zod.coerce.date(),
+  emailStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
+  emailError: zod.string().nullish(),
+  emailSentAt: zod.coerce.date().nullish(),
+  smsStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
+  smsError: zod.string().nullish(),
+  smsSentAt: zod.coerce.date().nullish(),
 });
 export const ListEstimateRequestsResponse = zod.array(
   ListEstimateRequestsResponseItem,
@@ -261,6 +300,37 @@ export const ListEstimateRequestsResponse = zod.array(
 
 export const DeleteEstimateRequestParams = zod.object({
   id: zod.coerce.number(),
+});
+
+/**
+ * @summary Re-send the email/SMS alert for an estimate request
+ */
+export const ResendEstimateRequestNotificationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ResendEstimateRequestNotificationBody = zod.object({
+  channels: zod.array(zod.enum(["email", "sms"])).optional(),
+});
+
+export const ResendEstimateRequestNotificationResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  phone: zod.string().nullish(),
+  address: zod.string().nullish(),
+  propertyType: zod.string().nullish(),
+  projectType: zod.string().nullish(),
+  monthlyBill: zod.string().nullish(),
+  timeline: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  emailStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
+  emailError: zod.string().nullish(),
+  emailSentAt: zod.coerce.date().nullish(),
+  smsStatus: zod.enum(["pending", "sent", "failed", "skipped"]),
+  smsError: zod.string().nullish(),
+  smsSentAt: zod.coerce.date().nullish(),
 });
 
 /**

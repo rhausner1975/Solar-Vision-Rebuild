@@ -1,5 +1,11 @@
 import { ReplitConnectors } from "@replit/connectors-sdk";
-import { db, notificationSettingsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import {
+  db,
+  contactSubmissionsTable,
+  estimateRequestsTable,
+  notificationSettingsTable,
+} from "@workspace/db";
 import { logger } from "./logger";
 
 const FALLBACK_TO = process.env["NOTIFY_EMAIL_TO"] ?? "info@vision9.biz";
@@ -11,6 +17,16 @@ const TWILIO_FROM_NUMBER = process.env["TWILIO_FROM_NUMBER"];
 const SMS_MAX_LENGTH = 320;
 
 const connectors = new ReplitConnectors();
+
+export type DeliveryStatus = "sent" | "failed" | "skipped";
+export type NotifyKind = "contact" | "estimate";
+export type Channel = "email" | "sms";
+
+export interface DeliveryOutcome {
+  status: DeliveryStatus;
+  error?: string;
+  sentAt?: Date;
+}
 
 function sanitizeHeader(value: string): string {
   return value.replace(/[\r\n]+/g, " ").trim().slice(0, 200);
@@ -48,29 +64,37 @@ async function getRecipients(): Promise<string[]> {
   return [FALLBACK_TO];
 }
 
-async function sendEmail(
+async function deliverEmail(
   subject: string,
   body: string,
   overrideRecipients?: string[],
-): Promise<void> {
-  const recipients =
-    overrideRecipients && overrideRecipients.length > 0
-      ? overrideRecipients
-      : await getRecipients();
-  const toHeader = recipients.join(", ");
-  const raw = base64UrlEncode(buildRfc822(toHeader, subject, body));
-  const response = await connectors.proxy(
-    "google-mail",
-    "/gmail/v1/users/me/messages/send",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ raw }),
-    },
-  );
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`Gmail send failed: ${response.status} ${text}`);
+): Promise<DeliveryOutcome> {
+  try {
+    const recipients =
+      overrideRecipients && overrideRecipients.length > 0
+        ? overrideRecipients
+        : await getRecipients();
+    const toHeader = recipients.join(", ");
+    const raw = base64UrlEncode(buildRfc822(toHeader, subject, body));
+    const response = await connectors.proxy(
+      "google-mail",
+      "/gmail/v1/users/me/messages/send",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raw }),
+      },
+    );
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      return {
+        status: "failed",
+        error: `Gmail ${response.status}: ${text.slice(0, 500)}`,
+      };
+    }
+    return { status: "sent", sentAt: new Date() };
+  } catch (err) {
+    return { status: "failed", error: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -90,22 +114,25 @@ export async function sendTestNotificationEmail(): Promise<{
     `Recipients on this test: ${recipients.join(", ")}`,
     `Sent at: ${new Date().toISOString()}`,
   ].join("\n");
-  try {
-    await sendEmail(subject, body, recipients);
+  const outcome = await deliverEmail(subject, body, recipients);
+  if (outcome.status === "sent") {
     logger.info({ recipients }, "Sent test notification email");
     return { delivered: true, recipients };
-  } catch (err) {
-    logger.error({ err, recipients }, "Failed to send test notification email");
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return { delivered: false, recipients, error: message };
   }
+  logger.error(
+    { error: outcome.error, recipients },
+    "Failed to send test notification email",
+  );
+  return { delivered: false, recipients, error: outcome.error ?? "Unknown error" };
 }
 
-async function sendSms(message: string): Promise<void> {
+async function sendSms(message: string): Promise<DeliveryOutcome> {
   if (!NOTIFY_SMS_TO || !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
-    throw new Error(
-      "SMS not configured: NOTIFY_SMS_TO, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER must all be set",
-    );
+    return {
+      status: "skipped",
+      error:
+        "SMS not configured: NOTIFY_SMS_TO, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER must all be set",
+    };
   }
   const truncated =
     message.length > SMS_MAX_LENGTH ? `${message.slice(0, SMS_MAX_LENGTH - 1)}…` : message;
@@ -118,28 +145,23 @@ async function sendSms(message: string): Promise<void> {
     From: TWILIO_FROM_NUMBER,
     Body: truncated,
   });
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${auth}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: body.toString(),
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`Twilio send failed: ${response.status} ${text}`);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
+    });
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      return { status: "failed", error: `Twilio ${response.status}: ${text.slice(0, 500)}` };
+    }
+    return { status: "sent", sentAt: new Date() };
+  } catch (err) {
+    return { status: "failed", error: err instanceof Error ? err.message : String(err) };
   }
-}
-
-function dispatchSms(message: string, context: string): void {
-  if (!NOTIFY_SMS_TO || !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
-    logger.warn({ context }, "SMS notification skipped: Twilio env vars not configured");
-    return;
-  }
-  sendSms(message).catch((err) => {
-    logger.error({ err, context }, "Failed to send SMS notification");
-  });
 }
 
 const DEFAULT_DEDUP_WINDOW_MS = 5 * 60 * 1000;
@@ -188,15 +210,7 @@ export interface ContactSubmissionPayload {
   message: string;
 }
 
-export function notifyContactSubmission(data: ContactSubmissionPayload): void {
-  const key = dedupKey("contact", data.email, data.phone);
-  if (shouldSkipDuplicate(key)) {
-    logger.info(
-      { context: "contact-submission", email: data.email, phone: data.phone },
-      "Duplicate lead notification suppressed within de-dup window",
-    );
-    return;
-  }
+function contactEmailBody(data: ContactSubmissionPayload): { subject: string; body: string } {
   const subject = `New contact submission from ${data.name}`;
   const body = [
     "A new contact form submission was received on vision9.biz.",
@@ -208,29 +222,20 @@ export function notifyContactSubmission(data: ContactSubmissionPayload): void {
     "Message:",
     data.message,
   ].join("\n");
-
-  sendEmail(subject, body).catch((err) => {
-    logger.error({ err }, "Failed to send contact submission notification email");
-  });
-
-  const smsParts = [`New Vision9 contact: ${data.name}`];
-  if (data.phone) smsParts.push(`Phone: ${data.phone}`);
-  else smsParts.push(`Email: ${data.email}`);
-  const summary = data.message.replace(/\s+/g, " ").trim();
-  if (summary) smsParts.push(summary);
-  dispatchSms(smsParts.join(" | "), "contact-submission");
+  return { subject, body };
 }
 
-export function notifyEstimateRequest(data: Record<string, unknown>): void {
+function contactSmsBody(data: ContactSubmissionPayload): string {
+  const parts = [`New Vision9 contact: ${data.name}`];
+  if (data.phone) parts.push(`Phone: ${data.phone}`);
+  else parts.push(`Email: ${data.email}`);
+  const summary = data.message.replace(/\s+/g, " ").trim();
+  if (summary) parts.push(summary);
+  return parts.join(" | ");
+}
+
+function estimateEmailBody(data: Record<string, unknown>): { subject: string; body: string } {
   const name = typeof data["name"] === "string" ? (data["name"] as string) : "(unknown)";
-  const dedup = dedupKey("estimate", data["email"], data["phone"]);
-  if (shouldSkipDuplicate(dedup)) {
-    logger.info(
-      { context: "estimate-request", email: data["email"], phone: data["phone"] },
-      "Duplicate lead notification suppressed within de-dup window",
-    );
-    return;
-  }
   const subject = `New estimate request from ${name}`;
   const lines = ["A new estimate request was received on vision9.biz.", ""];
   for (const [key, value] of Object.entries(data)) {
@@ -241,21 +246,129 @@ export function notifyEstimateRequest(data: Record<string, unknown>): void {
       lines.push(fmtField(key, value));
     }
   }
+  return { subject, body: lines.join("\n") };
+}
 
-  sendEmail(subject, lines.join("\n")).catch((err) => {
-    logger.error({ err }, "Failed to send estimate request notification email");
-  });
-
-  const smsParts = [`New Vision9 estimate: ${name}`];
+function estimateSmsBody(data: Record<string, unknown>): string {
+  const name = typeof data["name"] === "string" ? (data["name"] as string) : "(unknown)";
+  const parts = [`New Vision9 estimate: ${name}`];
   const phone = data["phone"];
   const email = data["email"];
-  if (typeof phone === "string" && phone) smsParts.push(`Phone: ${phone}`);
-  else if (typeof email === "string" && email) smsParts.push(`Email: ${email}`);
+  if (typeof phone === "string" && phone) parts.push(`Phone: ${phone}`);
+  else if (typeof email === "string" && email) parts.push(`Email: ${email}`);
   const extras: string[] = [];
   for (const key of ["address", "systemSize", "serviceType", "message", "notes"]) {
     const v = data[key];
     if (typeof v === "string" && v.trim()) extras.push(`${key}: ${v.trim()}`);
   }
-  if (extras.length) smsParts.push(extras.join("; "));
-  dispatchSms(smsParts.join(" | "), "estimate-request");
+  if (extras.length) parts.push(extras.join("; "));
+  return parts.join(" | ");
+}
+
+async function persistOutcome(
+  kind: NotifyKind,
+  id: number,
+  channel: Channel,
+  outcome: DeliveryOutcome,
+): Promise<void> {
+  const updates: Record<string, unknown> = {};
+  if (channel === "email") {
+    updates.emailStatus = outcome.status;
+    updates.emailError = outcome.error ?? null;
+    updates.emailSentAt = outcome.status === "sent" ? (outcome.sentAt ?? new Date()) : null;
+  } else {
+    updates.smsStatus = outcome.status;
+    updates.smsError = outcome.error ?? null;
+    updates.smsSentAt = outcome.status === "sent" ? (outcome.sentAt ?? new Date()) : null;
+  }
+  try {
+    if (kind === "contact") {
+      await db
+        .update(contactSubmissionsTable)
+        .set(updates)
+        .where(eq(contactSubmissionsTable.id, id));
+    } else {
+      await db
+        .update(estimateRequestsTable)
+        .set(updates)
+        .where(eq(estimateRequestsTable.id, id));
+    }
+  } catch (err) {
+    logger.error({ err, kind, id, channel }, "Failed to persist notification status");
+  }
+}
+
+async function dispatch(
+  kind: NotifyKind,
+  id: number,
+  channels: Channel[],
+  email: { subject: string; body: string },
+  sms: string,
+): Promise<{ email?: DeliveryOutcome; sms?: DeliveryOutcome }> {
+  const result: { email?: DeliveryOutcome; sms?: DeliveryOutcome } = {};
+  if (channels.includes("email")) {
+    const outcome = await deliverEmail(email.subject, email.body);
+    result.email = outcome;
+    await persistOutcome(kind, id, "email", outcome);
+    if (outcome.status === "failed") {
+      logger.error({ kind, id, error: outcome.error }, "Notification email failed");
+    }
+  }
+  if (channels.includes("sms")) {
+    const outcome = await sendSms(sms);
+    result.sms = outcome;
+    await persistOutcome(kind, id, "sms", outcome);
+    if (outcome.status === "failed") {
+      logger.error({ kind, id, error: outcome.error }, "Notification SMS failed");
+    }
+  }
+  return result;
+}
+
+export function notifyContactSubmission(id: number, data: ContactSubmissionPayload): void {
+  const key = dedupKey("contact", data.email, data.phone);
+  if (shouldSkipDuplicate(key)) {
+    logger.info(
+      { context: "contact-submission", email: data.email, phone: data.phone },
+      "Duplicate lead notification suppressed within de-dup window",
+    );
+    return;
+  }
+  const email = contactEmailBody(data);
+  const sms = contactSmsBody(data);
+  void dispatch("contact", id, ["email", "sms"], email, sms);
+}
+
+export function notifyEstimateRequest(id: number, data: Record<string, unknown>): void {
+  const key = dedupKey("estimate", data["email"], data["phone"]);
+  if (shouldSkipDuplicate(key)) {
+    logger.info(
+      { context: "estimate-request", email: data["email"], phone: data["phone"] },
+      "Duplicate lead notification suppressed within de-dup window",
+    );
+    return;
+  }
+  const email = estimateEmailBody(data);
+  const sms = estimateSmsBody(data);
+  void dispatch("estimate", id, ["email", "sms"], email, sms);
+}
+
+export async function resendContactNotification(
+  id: number,
+  data: ContactSubmissionPayload,
+  channels: Channel[],
+): Promise<{ email?: DeliveryOutcome; sms?: DeliveryOutcome }> {
+  const email = contactEmailBody(data);
+  const sms = contactSmsBody(data);
+  return dispatch("contact", id, channels, email, sms);
+}
+
+export async function resendEstimateNotification(
+  id: number,
+  data: Record<string, unknown>,
+  channels: Channel[],
+): Promise<{ email?: DeliveryOutcome; sms?: DeliveryOutcome }> {
+  const email = estimateEmailBody(data);
+  const sms = estimateSmsBody(data);
+  return dispatch("estimate", id, channels, email, sms);
 }

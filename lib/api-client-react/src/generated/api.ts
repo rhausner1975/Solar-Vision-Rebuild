@@ -38,6 +38,7 @@ import type {
   RequestPasswordResetInput,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
+  ResendNotificationInput,
   SubmissionAck,
   TestNotificationResult,
 } from "./api.schemas";
@@ -1106,6 +1107,100 @@ export const useDeleteContactSubmission = <
 };
 
 /**
+ * @summary Re-send the email/SMS alert for a contact submission
+ */
+export const getResendContactSubmissionNotificationUrl = (id: number) => {
+  return `/api/admin/contact-submissions/${id}/resend-notification`;
+};
+
+export const resendContactSubmissionNotification = async (
+  id: number,
+  resendNotificationInput?: ResendNotificationInput,
+  options?: RequestInit,
+): Promise<ContactSubmission> => {
+  return customFetch<ContactSubmission>(
+    getResendContactSubmissionNotificationUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(resendNotificationInput),
+    },
+  );
+};
+
+export const getResendContactSubmissionNotificationMutationOptions = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resendContactSubmissionNotification>>,
+    TError,
+    { id: number; data: BodyType<ResendNotificationInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resendContactSubmissionNotification>>,
+  TError,
+  { id: number; data: BodyType<ResendNotificationInput> },
+  TContext
+> => {
+  const mutationKey = ["resendContactSubmissionNotification"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resendContactSubmissionNotification>>,
+    { id: number; data: BodyType<ResendNotificationInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return resendContactSubmissionNotification(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResendContactSubmissionNotificationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resendContactSubmissionNotification>>
+>;
+export type ResendContactSubmissionNotificationMutationBody =
+  BodyType<ResendNotificationInput>;
+export type ResendContactSubmissionNotificationMutationError =
+  ErrorType<ApiError>;
+
+/**
+ * @summary Re-send the email/SMS alert for a contact submission
+ */
+export const useResendContactSubmissionNotification = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resendContactSubmissionNotification>>,
+    TError,
+    { id: number; data: BodyType<ResendNotificationInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resendContactSubmissionNotification>>,
+  TError,
+  { id: number; data: BodyType<ResendNotificationInput> },
+  TContext
+> => {
+  return useMutation(
+    getResendContactSubmissionNotificationMutationOptions(options),
+  );
+};
+
+/**
  * @summary List estimate requests
  */
 export const getListEstimateRequestsUrl = () => {
@@ -1256,6 +1351,100 @@ export const useDeleteEstimateRequest = <
   TContext
 > => {
   return useMutation(getDeleteEstimateRequestMutationOptions(options));
+};
+
+/**
+ * @summary Re-send the email/SMS alert for an estimate request
+ */
+export const getResendEstimateRequestNotificationUrl = (id: number) => {
+  return `/api/admin/estimate-requests/${id}/resend-notification`;
+};
+
+export const resendEstimateRequestNotification = async (
+  id: number,
+  resendNotificationInput?: ResendNotificationInput,
+  options?: RequestInit,
+): Promise<EstimateRequest> => {
+  return customFetch<EstimateRequest>(
+    getResendEstimateRequestNotificationUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(resendNotificationInput),
+    },
+  );
+};
+
+export const getResendEstimateRequestNotificationMutationOptions = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resendEstimateRequestNotification>>,
+    TError,
+    { id: number; data: BodyType<ResendNotificationInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resendEstimateRequestNotification>>,
+  TError,
+  { id: number; data: BodyType<ResendNotificationInput> },
+  TContext
+> => {
+  const mutationKey = ["resendEstimateRequestNotification"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resendEstimateRequestNotification>>,
+    { id: number; data: BodyType<ResendNotificationInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return resendEstimateRequestNotification(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResendEstimateRequestNotificationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resendEstimateRequestNotification>>
+>;
+export type ResendEstimateRequestNotificationMutationBody =
+  BodyType<ResendNotificationInput>;
+export type ResendEstimateRequestNotificationMutationError =
+  ErrorType<ApiError>;
+
+/**
+ * @summary Re-send the email/SMS alert for an estimate request
+ */
+export const useResendEstimateRequestNotification = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resendEstimateRequestNotification>>,
+    TError,
+    { id: number; data: BodyType<ResendNotificationInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resendEstimateRequestNotification>>,
+  TError,
+  { id: number; data: BodyType<ResendNotificationInput> },
+  TContext
+> => {
+  return useMutation(
+    getResendEstimateRequestNotificationMutationOptions(options),
+  );
 };
 
 /**
