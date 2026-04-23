@@ -58,26 +58,57 @@ function MissingImageThumbnail({
   alt: string;
 }) {
   const [errored, setErrored] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const fullSrc = imageVariantUrl(objectPath, "full");
   return (
-    <div className="h-12 w-12 shrink-0 overflow-hidden rounded border border-border bg-muted flex items-center justify-center">
+    <>
       {errored ? (
-        <ImageOff
-          className="h-5 w-5 text-muted-foreground"
-          aria-label="Preview unavailable"
-          data-testid={`thumb-missing-${objectPath}`}
-        />
+        <div className="h-12 w-12 shrink-0 overflow-hidden rounded border border-border bg-muted flex items-center justify-center">
+          <ImageOff
+            className="h-5 w-5 text-muted-foreground"
+            aria-label="Preview unavailable"
+            data-testid={`thumb-missing-${objectPath}`}
+          />
+        </div>
       ) : (
-        <img
-          src={imageVariantUrl(objectPath, "full")}
-          alt={alt}
-          loading="lazy"
-          decoding="async"
-          className="h-full w-full object-cover"
-          onError={() => setErrored(true)}
-          data-testid={`thumb-image-${objectPath}`}
-        />
+        <button
+          type="button"
+          onClick={() => setLightboxOpen(true)}
+          className="h-12 w-12 shrink-0 overflow-hidden rounded border border-border bg-muted flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label={`Preview ${alt} at full size`}
+          data-testid={`button-thumb-${objectPath}`}
+        >
+          <img
+            src={fullSrc}
+            alt={alt}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+            onError={() => setErrored(true)}
+            data-testid={`thumb-image-${objectPath}`}
+          />
+        </button>
       )}
-    </div>
+      <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+        <DialogContent
+          className="max-w-4xl p-2 sm:p-4 bg-background"
+          data-testid={`lightbox-${objectPath}`}
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>{alt}</DialogTitle>
+            <DialogDescription>{objectPath}</DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-center max-h-[80vh] overflow-hidden">
+            <img
+              src={fullSrc}
+              alt={alt}
+              className="max-h-[80vh] w-auto h-auto object-contain"
+              data-testid={`lightbox-image-${objectPath}`}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
