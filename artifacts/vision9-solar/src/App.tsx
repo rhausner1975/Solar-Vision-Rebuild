@@ -83,6 +83,7 @@ function Router() {
 
   return (
     <Shell>
+      <SmoothScroll />
       <PageTransition routeKey={location}>
         <Switch>
           <Route path="/" component={Home} />
