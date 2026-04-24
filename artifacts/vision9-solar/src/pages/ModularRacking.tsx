@@ -602,16 +602,16 @@ export default function ModularRacking() {
       </section>
 
       {/* HERITAGE */}
-      <section className="py-24 md:py-28 bg-foreground text-background relative overflow-hidden">
+      <section className="py-24 md:py-28 bg-background relative overflow-hidden">
         <div className="container mx-auto px-4">
           <Reveal className="max-w-3xl mb-12">
             <p className="text-sm font-bold tracking-[0.18em] uppercase text-primary mb-3">
               Who Built This &amp; Why
             </p>
-            <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight tracking-tight">
+            <h2 className="text-3xl md:text-5xl font-bold text-foreground leading-tight tracking-tight">
               We're not a startup. We're the people who fix other people's systems.
             </h2>
-            <p className="text-lg text-gray-300 mt-6 leading-relaxed">
+            <p className="text-lg text-secondary mt-6 leading-relaxed">
               Vision9 started as a solar O&amp;M company — the team that gets
               called in when a system isn't performing, when panels are failing
               prematurely, when an install that looked fine on paper is costing
@@ -621,9 +621,9 @@ export default function ModularRacking() {
           </Reveal>
 
           <Reveal className="max-w-4xl mx-auto my-16">
-            <div className="relative px-6 md:px-12 py-10 border-l-4 border-primary bg-white/5 rounded-r">
-              <Quote className="absolute -top-4 -left-4 h-8 w-8 text-primary bg-foreground p-1 rounded" />
-              <p className="text-2xl md:text-3xl font-bold text-white leading-snug italic">
+            <div className="relative px-6 md:px-12 py-10 border-l-4 border-primary bg-muted rounded-r">
+              <Quote className="absolute -top-4 -left-4 h-8 w-8 text-primary bg-background p-1 rounded" />
+              <p className="text-2xl md:text-3xl font-bold text-foreground leading-snug italic">
                 "We got tired of seeing the same preventable failures. So we
                 built the system we wish existed."
               </p>
@@ -631,7 +631,7 @@ export default function ModularRacking() {
           </Reveal>
 
           <Reveal className="max-w-4xl">
-            <p className="text-lg text-gray-300 leading-relaxed mb-10">
+            <p className="text-lg text-secondary leading-relaxed mb-10">
               The Vision9 Modular Racking System is the result of that
               experience. Not a product built to a spec sheet — a product built
               to real field conditions, by people who will personally stand
@@ -641,7 +641,7 @@ export default function ModularRacking() {
               {CAPABILITIES.map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex items-center rounded-full border border-white/20 bg-white/5 px-4 py-1.5 text-sm font-medium text-white"
+                  className="inline-flex items-center rounded-full border border-border bg-muted px-4 py-1.5 text-sm font-medium text-foreground"
                 >
                   {tag}
                 </span>
@@ -650,7 +650,7 @@ export default function ModularRacking() {
           </Reveal>
 
           <StaggerChildren
-            className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-6 border-t border-white/10 pt-12"
+            className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-6 border-t border-border pt-12"
             staggerDelay={0.1}
           >
             {HERITAGE_STATS.map((stat, i) => (
@@ -663,7 +663,7 @@ export default function ModularRacking() {
                     data-testid={`heritage-stat-${i}`}
                   />
                 </div>
-                <p className="text-sm text-gray-300 font-medium leading-snug">
+                <p className="text-sm text-secondary font-medium leading-snug">
                   {stat.label}
                 </p>
               </StaggerItem>
@@ -866,7 +866,7 @@ export default function ModularRacking() {
       <section
         ref={formSectionRef}
         id="contact"
-        className="py-24 md:py-28 bg-foreground text-background scroll-mt-24"
+        className="py-24 md:py-28 bg-muted scroll-mt-24"
       >
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-12 gap-12 lg:gap-16">
@@ -875,17 +875,17 @@ export default function ModularRacking() {
                 <p className="text-sm font-bold tracking-[0.18em] uppercase text-primary mb-3">
                   Start Your Project
                 </p>
-                <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight tracking-tight">
+                <h2 className="text-3xl md:text-5xl font-bold text-foreground leading-tight tracking-tight">
                   Ready to stop{" "}
                   <span className="italic text-primary">experimenting</span> with
                   your energy?
                 </h2>
-                <p className="text-lg text-gray-300 mt-6 leading-relaxed">
+                <p className="text-lg text-secondary mt-6 leading-relaxed">
                   Tell us about your property and your energy goals. We'll come
                   back to you with a system recommendation sized for your
                   situation — no upsell, no guesswork.
                 </p>
-                <p className="text-base text-gray-400 mt-4 leading-relaxed">
+                <p className="text-base text-secondary mt-4 leading-relaxed">
                   Not sure what you need? That's fine — most people who call us
                   don't know yet. We've guided hundreds of property owners
                   through this. It starts with a conversation.
@@ -893,22 +893,22 @@ export default function ModularRacking() {
               </div>
 
               <div className="space-y-4">
-                <p className="text-xs font-bold tracking-[0.18em] uppercase text-gray-400">
+                <p className="text-xs font-bold tracking-[0.18em] uppercase text-secondary">
                   Two Ontario Offices
                 </p>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-bold text-white text-sm">Southern Ontario</p>
-                      <p className="text-gray-300 text-sm">Marmora, ON — K0K 2M0</p>
+                      <p className="font-bold text-foreground text-sm">Southern Ontario</p>
+                      <p className="text-secondary text-sm">Marmora, ON — K0K 2M0</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-bold text-white text-sm">Northern Ontario</p>
-                      <p className="text-gray-300 text-sm">Kirkland Lake, ON — P2N 3C8</p>
+                      <p className="font-bold text-foreground text-sm">Northern Ontario</p>
+                      <p className="text-secondary text-sm">Kirkland Lake, ON — P2N 3C8</p>
                     </div>
                   </div>
                 </div>
@@ -917,14 +917,14 @@ export default function ModularRacking() {
               <div className="space-y-3 pt-2">
                 <a
                   href="tel:6138134305"
-                  className="flex items-center gap-3 text-white hover:text-primary transition-colors group"
+                  className="flex items-center gap-3 text-foreground hover:text-primary transition-colors group"
                 >
                   <Phone className="h-5 w-5 text-primary" />
                   <span className="font-semibold text-lg">613 813 4305</span>
                 </a>
                 <a
                   href="mailto:info@vision9.biz"
-                  className="flex items-center gap-3 text-white hover:text-primary transition-colors"
+                  className="flex items-center gap-3 text-foreground hover:text-primary transition-colors"
                 >
                   <Mail className="h-5 w-5 text-primary" />
                   <span className="font-semibold">info@vision9.biz</span>
@@ -933,7 +933,7 @@ export default function ModularRacking() {
             </Reveal>
 
             <Reveal className="lg:col-span-7" delay={0.1}>
-              <Card className="bg-background text-foreground border-0 shadow-2xl">
+              <Card className="bg-background text-foreground border-border shadow-xl">
                 <CardContent className="p-6 md:p-10">
                   <h3 className="text-xl md:text-2xl font-bold text-foreground mb-6">
                     Get Your System Recommendation
