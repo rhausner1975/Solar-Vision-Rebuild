@@ -138,7 +138,6 @@ function App() {
       </Helmet>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <SmoothScroll />
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
           </WouterRouter>
