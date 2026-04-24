@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: "/net-metering", label: "Net Metering" },
   { href: "/about", label: "About" },
   { href: "/services", label: "Services" },
+  { href: "/modular-racking", label: "Modular Racking" },
   { href: "/estimates", label: "Estimates" },
   { href: "/galleries", label: "Galleries" },
   { href: "/contact", label: "Contact" },

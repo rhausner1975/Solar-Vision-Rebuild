@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Helmet } from "react-helmet-async";
-import { ArrowRight, CheckCircle2, Image as ImageIcon } from "lucide-react";
+import { ArrowRight, CheckCircle2, Image as ImageIcon, Sparkles } from "lucide-react";
 import { useListPublicGalleries } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, StaggerChildren, StaggerItem, Counter } from "@/components/motion";
@@ -140,6 +140,45 @@ export default function Home() {
               <img src={reliabilityImg} alt="Vision9 Solar crew assembling a residential ground-mount system" className="w-full h-96 md:h-[28rem] rounded shadow-lg object-cover" loading="lazy" />
             </Reveal>
           </div>
+        </div>
+      </section>
+
+      {/* Modular Racking Callout */}
+      <section className="bg-background py-16 md:py-20">
+        <div className="container mx-auto px-4">
+          <Reveal>
+            <Link
+              href="/modular-racking"
+              className="group block rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors duration-300 p-6 md:p-10"
+              data-testid="home-modular-racking-callout"
+            >
+              <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
+                <div className="shrink-0 h-14 w-14 md:h-16 md:w-16 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-md">
+                  <Sparkles className="h-7 w-7 md:h-8 md:w-8" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-bold tracking-[0.18em] uppercase text-primary mb-2">
+                    Introducing — Vision9 Modular Racking
+                  </p>
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground leading-tight tracking-tight mb-2">
+                    A modular solar racking system, built from 10 years in the field.
+                  </h2>
+                  <p className="text-secondary text-base md:text-lg leading-relaxed">
+                    Seasonal angle adjustment. 2-person installation. Snow-load
+                    engineered for Canadian winters.
+                  </p>
+                </div>
+                <div className="shrink-0 hidden md:flex items-center gap-2 text-primary font-semibold group-hover:translate-x-1 transition-transform duration-200">
+                  Learn more
+                  <ArrowRight className="h-4 w-4" />
+                </div>
+              </div>
+              <div className="md:hidden mt-4 inline-flex items-center gap-2 text-primary font-semibold group-hover:translate-x-1 transition-transform duration-200">
+                Learn more
+                <ArrowRight className="h-4 w-4" />
+              </div>
+            </Link>
+          </Reveal>
         </div>
       </section>
 

@@ -11,7 +11,7 @@ A faithful rebuild of vision9solar.com on the Replit pnpm-monorepo template.
 - Outfit font (Google Fonts), border-radius `3px`
 
 ## Public routes
-`/`, `/net-metering`, `/about`, `/services`, `/estimates`, `/contact`, `/galleries`, `/galleries/:slug`
+`/`, `/net-metering`, `/about`, `/services`, `/modular-racking`, `/estimates`, `/contact`, `/galleries`, `/galleries/:slug`
 
 ## Admin routes (gated by session cookie)
 `/admin/login`, `/admin`, `/admin/contact`, `/admin/estimates`, `/admin/galleries`, `/admin/galleries/:id`, `/admin/account`
@@ -54,3 +54,12 @@ After codegen, `lib/api-zod/src/index.ts` must be `export * from "./generated/ap
 - Hero scale: `text-5xl md:text-6xl lg:text-7xl` for H1, `py-20 md:py-28` hero padding, `py-24 md:py-28` for inner sections.
 - Home stat strip uses placeholder figures (10+ years field experience, 100+ installations supported, 2 Ontario offices) — confirm with the business and update `STATS` in `src/pages/Home.tsx` when real numbers are provided.
 - Nav links use an animated underline accent (`Shell.tsx`) for active/hover state.
+
+## Modular Racking product page (Task #72)
+- Route: `/modular-racking` (`src/pages/ModularRacking.tsx`).
+- Hero, trust strip, problems, features, sticky-scroll Installation Overview (mobile fallback), Heritage section (uses `Counter` for 4 stats), two-audience split panel, proof gallery (5 photos + 1 placeholder tile), 2 testimonials with "← Replace" markers, Turnstile-gated lead form.
+- Lead form posts via `submitContactSubmission` with `name = first + last`, `subject = "Modular Racking inquiry — <audience>"`, `message` prepends `[Audience: X]\nLocation: Y`. Audience CTAs prefill `audience` via `form.setValue` and scroll to the form.
+- Photos (`src/assets/source/racking-*.png`): `workshop-twin-frame`, `workshop-garage-build`, `field-cottage-winter` (hero), `field-residential-snow`, `field-low-angle-snow`.
+- Placeholder content needing real input from the business: 2 testimonial quotes/names, 1 gallery tile ("Cottage Expansion — Coming Soon"), the 4 Heritage stat numbers (10+, 100s, 2, 0).
+- Homepage callout band added between Reliability and Recent Projects sections (`Home.tsx`) linking to `/modular-racking`.
+- Nav order: Home, Net Metering, About, Services, **Modular Racking**, Estimates, Galleries, Contact.

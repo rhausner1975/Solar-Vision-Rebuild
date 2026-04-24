@@ -19,6 +19,7 @@ import Estimates from "@/pages/Estimates";
 import Contact from "@/pages/Contact";
 import Galleries from "@/pages/Galleries";
 import GalleryView from "@/pages/GalleryView";
+import ModularRacking from "@/pages/ModularRacking";
 
 // Admin Pages
 import AdminLogin from "@/pages/admin/Login";
@@ -90,6 +91,7 @@ function Router() {
           <Route path="/net-metering" component={NetMetering} />
           <Route path="/about" component={About} />
           <Route path="/services" component={Services} />
+          <Route path="/modular-racking" component={ModularRacking} />
           <Route path="/estimates" component={Estimates} />
           <Route path="/contact" component={Contact} />
           <Route path="/galleries" component={Galleries} />
