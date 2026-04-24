@@ -37,18 +37,27 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-6">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`text-sm font-semibold transition-colors hover:text-primary ${
-                  location === link.href ? "text-primary" : "text-foreground"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+          <nav className="hidden md:flex items-center gap-7">
+            {NAV_LINKS.map((link) => {
+              const isActive = location === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`group relative text-sm font-semibold tracking-wide transition-colors duration-200 hover:text-primary ${
+                    isActive ? "text-primary" : "text-foreground"
+                  }`}
+                  data-testid={`nav-link-${link.label.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  {link.label}
+                  <span
+                    className={`absolute -bottom-1.5 left-0 h-0.5 bg-primary transition-all duration-300 ease-out ${
+                      isActive ? "w-full" : "w-0 group-hover:w-full"
+                    }`}
+                  />
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Mobile Menu Toggle */}

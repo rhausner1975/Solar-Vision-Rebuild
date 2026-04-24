@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { TurnstileWidget, TURNSTILE_CONFIGURED } from "@/components/forms/TurnstileWidget";
+import { Reveal } from "@/components/motion";
 import {
   Select,
   SelectContent,
@@ -116,15 +117,18 @@ export default function Estimates() {
         <meta name="description" content="Request an estimate for your solar net-metering or off-grid project in Ontario." />
       </Helmet>
 
-      <section className="bg-primary/10 py-16">
+      <section className="bg-primary/10 py-20 md:py-24">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Request an Estimate</h1>
-          <p className="text-xl text-secondary max-w-2xl mx-auto">Provide some details about your project and we'll get back to you with a tailored solution.</p>
+          <Reveal>
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-foreground mb-5 leading-[1.05] tracking-tight">Request an Estimate</h1>
+            <p className="text-xl md:text-2xl text-secondary max-w-2xl mx-auto leading-relaxed">Provide some details about your project and we'll get back to you with a tailored solution.</p>
+          </Reveal>
         </div>
       </section>
 
-      <section className="py-20">
+      <section className="py-20 md:py-24">
         <div className="container mx-auto px-4 max-w-3xl">
+          <Reveal>
           {createEstimate.isSuccess ? (
             <div className="bg-muted p-12 rounded-lg text-center border border-border shadow-sm">
               <CheckCircle2 className="h-16 w-16 text-primary mx-auto mb-6" />
@@ -277,6 +281,7 @@ export default function Estimates() {
               </Form>
             </div>
           )}
+          </Reveal>
         </div>
       </section>
     </>

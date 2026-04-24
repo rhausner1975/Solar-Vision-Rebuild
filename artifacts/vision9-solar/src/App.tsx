@@ -4,6 +4,7 @@ import { HelmetProvider, Helmet } from "react-helmet-async";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
+import { PageTransition, SmoothScroll } from "@/components/motion";
 
 // Layouts
 import { Shell } from "@/components/layout/Shell";
@@ -82,17 +83,19 @@ function Router() {
 
   return (
     <Shell>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/net-metering" component={NetMetering} />
-        <Route path="/about" component={About} />
-        <Route path="/services" component={Services} />
-        <Route path="/estimates" component={Estimates} />
-        <Route path="/contact" component={Contact} />
-        <Route path="/galleries" component={Galleries} />
-        <Route path="/galleries/:slug" component={GalleryView} />
-        <Route component={NotFound} />
-      </Switch>
+      <PageTransition routeKey={location}>
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/net-metering" component={NetMetering} />
+          <Route path="/about" component={About} />
+          <Route path="/services" component={Services} />
+          <Route path="/estimates" component={Estimates} />
+          <Route path="/contact" component={Contact} />
+          <Route path="/galleries" component={Galleries} />
+          <Route path="/galleries/:slug" component={GalleryView} />
+          <Route component={NotFound} />
+        </Switch>
+      </PageTransition>
     </Shell>
   );
 }
@@ -134,6 +137,7 @@ function App() {
       </Helmet>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
+          <SmoothScroll />
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
           </WouterRouter>

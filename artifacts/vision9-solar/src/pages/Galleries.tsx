@@ -4,6 +4,7 @@ import { ArrowRight, Image as ImageIcon, Zap } from "lucide-react";
 import { useListPublicGalleries } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { imageVariantUrl, imageSrcSet } from "@/lib/galleryImage";
+import { Reveal, StaggerChildren, StaggerItem } from "@/components/motion";
 
 export default function Galleries() {
   const { data: galleries, isLoading } = useListPublicGalleries();
@@ -23,14 +24,16 @@ export default function Galleries() {
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
 
-      <section className="bg-primary/10 py-16">
+      <section className="bg-primary/10 py-20 md:py-24">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Project Galleries</h1>
-          <p className="text-xl text-secondary max-w-2xl mx-auto">Browse our recent solar installations and off-grid builds.</p>
+          <Reveal>
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-foreground mb-5 leading-[1.05] tracking-tight">Project Galleries</h1>
+            <p className="text-xl md:text-2xl text-secondary max-w-2xl mx-auto leading-relaxed">Browse our recent solar installations and off-grid builds.</p>
+          </Reveal>
         </div>
       </section>
 
-      <section className="py-20 min-h-[50vh]">
+      <section className="py-20 md:py-24 min-h-[50vh]">
         <div className="container mx-auto px-4">
           {isLoading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -39,7 +42,7 @@ export default function Galleries() {
               ))}
             </div>
           ) : galleries && galleries.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <StaggerChildren className="grid md:grid-cols-2 lg:grid-cols-3 gap-8" staggerDelay={0.08}>
               {galleries.map((gallery) => {
                 const coverImage = gallery.images[0];
                 const installYear = gallery.installDate
@@ -50,9 +53,12 @@ export default function Galleries() {
                   : null;
                 const hasSize = gallery.systemSizeKw != null;
                 return (
-                  <Link key={gallery.id} href={`/galleries/${gallery.slug}`}>
-                    <a className="group block bg-background border border-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow hover-elevate">
-                      <div className="aspect-[4/3] bg-muted relative overflow-hidden flex items-center justify-center">
+                  <StaggerItem key={gallery.id}>
+                  <Link
+                    href={`/galleries/${gallery.slug}`}
+                    className="group block bg-background border border-border rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 hover-elevate h-full"
+                  >
+                    <div className="aspect-[4/3] bg-muted relative overflow-hidden flex items-center justify-center">
                         {coverImage ? (
                           <img
                             src={imageVariantUrl(coverImage.objectPath, "medium")}
@@ -95,11 +101,11 @@ export default function Galleries() {
                           View Gallery <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
                         </div>
                       </div>
-                    </a>
                   </Link>
+                  </StaggerItem>
                 );
               })}
-            </div>
+            </StaggerChildren>
           ) : (
             <div className="text-center py-12 bg-muted rounded-lg border border-border">
               <ImageIcon className="h-12 w-12 text-secondary mx-auto mb-4 opacity-50" />

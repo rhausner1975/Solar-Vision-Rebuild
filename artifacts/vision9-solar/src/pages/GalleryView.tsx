@@ -251,7 +251,10 @@ export default function GalleryView() {
 
       {/* Lightbox */}
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] h-full p-0 bg-black/95 border-none flex flex-col [&>button]:hidden">
+        <DialogContent
+          data-lenis-prevent
+          className="max-w-[95vw] w-full max-h-[95vh] h-full p-0 bg-black/95 border-none flex flex-col [&>button]:hidden"
+        >
           <DialogTitle className="sr-only">Gallery Image</DialogTitle>
           <DialogDescription className="sr-only">Fullscreen gallery view</DialogDescription>
           

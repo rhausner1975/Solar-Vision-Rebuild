@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { TurnstileWidget, TURNSTILE_CONFIGURED } from "@/components/forms/TurnstileWidget";
+import { Reveal, StaggerChildren, StaggerItem } from "@/components/motion";
 
 const contactSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
@@ -101,18 +102,20 @@ export default function Contact() {
         <meta name="description" content="Contact Vision9 Solar Inc. for your solar installation needs. Offices in Marmora and Kirkland Lake, Ontario." />
       </Helmet>
 
-      <section className="bg-primary/10 py-16">
+      <section className="bg-primary/10 py-20 md:py-24">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Contact Us</h1>
-          <p className="text-xl text-secondary max-w-2xl mx-auto">Get in touch with our team of solar experts.</p>
+          <Reveal>
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-foreground mb-5 leading-[1.05] tracking-tight">Contact Us</h1>
+            <p className="text-xl md:text-2xl text-secondary max-w-2xl mx-auto leading-relaxed">Get in touch with our team of solar experts.</p>
+          </Reveal>
         </div>
       </section>
 
-      <section className="py-20">
+      <section className="py-20 md:py-24">
         <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-16">
           
-          <div>
-            <h2 className="text-2xl font-bold text-foreground mb-6">Send us a message</h2>
+          <Reveal>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-6">Send us a message</h2>
             {createContact.isSuccess ? (
               <div className="bg-muted p-8 rounded text-center border border-border">
                 <CheckCircle2 className="h-12 w-12 text-primary mx-auto mb-4" />
@@ -223,11 +226,11 @@ export default function Contact() {
                 </form>
               </Form>
             )}
-          </div>
+          </Reveal>
 
-          <div className="space-y-12">
+          <Reveal className="space-y-12" delay={0.1}>
             <div>
-              <h2 className="text-2xl font-bold text-foreground mb-6">Contact Information</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-6">Contact Information</h2>
               <div className="bg-muted p-8 rounded border border-border space-y-6">
                 <div className="flex items-start gap-4">
                   <Phone className="h-6 w-6 text-primary shrink-0 mt-1" />
@@ -263,7 +266,7 @@ export default function Contact() {
                 </div>
               </div>
             </div>
-          </div>
+          </Reveal>
 
         </div>
       </section>
