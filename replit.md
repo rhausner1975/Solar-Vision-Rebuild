@@ -50,7 +50,7 @@ After codegen, `lib/api-zod/src/index.ts` must be `export * from "./generated/ap
   - `StaggerChildren` + `StaggerItem` — sequential reveals for grids/lists.
   - `Counter` — rAF-driven number ticker; eases out cubic; only animates when in view.
   - `PageTransition` — `AnimatePresence` cross-fade keyed on the wouter `location`. Wraps the public `Switch` inside `Shell`.
-  - `SmoothScroll` — Lenis instance mounted once at app root (duration 1.05, lerp 0.1, exponential ease). Returns `null`.
+  - `SmoothScroll` — Lenis instance mounted once inside the public `Shell` (not on admin routes; admin uses native scroll). Duration 1.05, lerp 0.1, exponential ease. Returns `null`.
 - Hero scale: `text-5xl md:text-6xl lg:text-7xl` for H1, `py-20 md:py-28` hero padding, `py-24 md:py-28` for inner sections.
 - Home stat strip uses placeholder figures (10+ years field experience, 100+ installations supported, 2 Ontario offices) — confirm with the business and update `STATS` in `src/pages/Home.tsx` when real numbers are provided.
 - Nav links use an animated underline accent (`Shell.tsx`) for active/hover state.
