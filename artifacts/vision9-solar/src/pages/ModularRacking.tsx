@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { OFFICES, SITE_CONTACT } from "@/lib/siteContact";
 import {
   Form,
   FormControl,
@@ -322,7 +323,7 @@ export default function ModularRacking() {
             title: "Couldn't send",
             description:
               error?.message ||
-              "There was a problem sending your details. Please try again or call us at 613 813 4305.",
+              `There was a problem sending your details. Please try again or call us at ${SITE_CONTACT.primaryPhoneDisplay}.`,
             variant: "destructive",
           });
         },
@@ -896,37 +897,46 @@ export default function ModularRacking() {
                   Two Ontario Offices
                 </p>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-foreground text-sm">Southern Ontario</p>
-                      <p className="text-secondary text-sm">Marmora, ON — K0K 2M0</p>
+                  {OFFICES.map((office) => (
+                    <div key={office.id} className="flex items-start gap-3">
+                      <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-foreground text-sm">{office.region}</p>
+                        {office.street ? (
+                          <p className="text-secondary text-sm">{office.street}</p>
+                        ) : null}
+                        <p className="text-secondary text-sm">
+                          {office.locality}, {office.province} — {office.postalCode}
+                        </p>
+                        {office.phoneTel && office.phoneDisplay ? (
+                          <a
+                            href={`tel:${office.phoneTel}`}
+                            className="inline-flex items-center gap-2 mt-1 text-secondary hover:text-primary transition-colors text-sm"
+                          >
+                            <Phone className="h-4 w-4 text-primary" />
+                            <span className="font-semibold">{office.phoneDisplay}</span>
+                          </a>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-foreground text-sm">Northern Ontario</p>
-                      <p className="text-secondary text-sm">Kirkland Lake, ON — P2N 3C8</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
 
               <div className="space-y-3 pt-2">
                 <a
-                  href="tel:6138134305"
+                  href={`tel:${SITE_CONTACT.primaryPhoneTel}`}
                   className="flex items-center gap-3 text-foreground hover:text-primary transition-colors group"
                 >
                   <Phone className="h-5 w-5 text-primary" />
-                  <span className="font-semibold text-lg">613 813 4305</span>
+                  <span className="font-semibold text-lg">{SITE_CONTACT.primaryPhoneDisplay}</span>
                 </a>
                 <a
-                  href="mailto:info@vision9.biz"
+                  href={SITE_CONTACT.emailHref}
                   className="flex items-center gap-3 text-foreground hover:text-primary transition-colors"
                 >
                   <Mail className="h-5 w-5 text-primary" />
-                  <span className="font-semibold">info@vision9.biz</span>
+                  <span className="font-semibold">{SITE_CONTACT.emailDisplay}</span>
                 </a>
               </div>
             </Reveal>

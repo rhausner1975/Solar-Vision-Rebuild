@@ -20,6 +20,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { TurnstileWidget, TURNSTILE_CONFIGURED } from "@/components/forms/TurnstileWidget";
 import { Reveal, StaggerChildren, StaggerItem } from "@/components/motion";
+import {
+  OFFICES,
+  SITE_CONTACT,
+  buildMapsEmbedSrc,
+} from "@/lib/siteContact";
 
 const contactSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
@@ -99,7 +104,7 @@ export default function Contact() {
     <>
       <Helmet>
         <title>Contact Us | Vision9 Solar Inc.</title>
-        <meta name="description" content="Contact Vision9 Solar Inc. for your solar installation needs. Offices in Marmora and Kirkland Lake, Ontario." />
+        <meta name="description" content="Contact Vision9 Solar Inc. for your solar installation needs. Offices in Marmora and Chaput Hughes, Ontario." />
       </Helmet>
 
       <section className="bg-primary/10 py-20 md:py-24">
@@ -236,14 +241,24 @@ export default function Contact() {
                   <Phone className="h-6 w-6 text-primary shrink-0 mt-1" />
                   <div>
                     <h3 className="font-bold text-foreground mb-1">Sales & Support</h3>
-                    <a href="tel:6138134305" className="text-secondary hover:text-primary transition-colors text-lg">613 813 4305</a>
+                    <a
+                      href={`tel:${SITE_CONTACT.primaryPhoneTel}`}
+                      className="text-secondary hover:text-primary transition-colors text-lg"
+                    >
+                      {SITE_CONTACT.primaryPhoneDisplay}
+                    </a>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
                   <Mail className="h-6 w-6 text-primary shrink-0 mt-1" />
                   <div>
                     <h3 className="font-bold text-foreground mb-1">Email</h3>
-                    <a href="mailto:info@vision9.biz" className="text-secondary hover:text-primary transition-colors text-lg">info@vision9.biz</a>
+                    <a
+                      href={SITE_CONTACT.emailHref}
+                      className="text-secondary hover:text-primary transition-colors text-lg"
+                    >
+                      {SITE_CONTACT.emailDisplay}
+                    </a>
                   </div>
                 </div>
               </div>
@@ -252,20 +267,72 @@ export default function Contact() {
             <div>
               <h2 className="text-2xl font-bold text-foreground mb-6">Our Offices</h2>
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-background border border-border p-6 rounded shadow-sm">
-                  <MapPin className="h-8 w-8 text-primary mb-4" />
-                  <h3 className="font-bold text-foreground text-lg mb-2">Southern Ontario</h3>
-                  <p className="text-secondary">Marmora ON.</p>
-                  <p className="text-secondary">K0K 2M0</p>
-                </div>
-                <div className="bg-background border border-border p-6 rounded shadow-sm">
-                  <MapPin className="h-8 w-8 text-primary mb-4" />
-                  <h3 className="font-bold text-foreground text-lg mb-2">Northern Ontario</h3>
-                  <p className="text-secondary">Kirkland Lake ON.</p>
-                  <p className="text-secondary">P2N 3C8</p>
-                </div>
+                {OFFICES.map((office) => (
+                  <div
+                    key={office.id}
+                    className="bg-background border border-border p-6 rounded shadow-sm"
+                  >
+                    <MapPin className="h-8 w-8 text-primary mb-4" />
+                    <h3 className="font-bold text-foreground text-lg mb-2">{office.region}</h3>
+                    {office.street ? (
+                      <p className="text-secondary">{office.street}</p>
+                    ) : null}
+                    <p className="text-secondary">{office.locality}, {office.province}</p>
+                    <p className="text-secondary">{office.postalCode}</p>
+                    {office.phoneTel && office.phoneDisplay ? (
+                      <a
+                        href={`tel:${office.phoneTel}`}
+                        className="inline-flex items-center gap-2 mt-3 text-secondary hover:text-primary transition-colors"
+                      >
+                        <Phone className="h-4 w-4 text-primary" />
+                        <span className="font-semibold">{office.phoneDisplay}</span>
+                      </a>
+                    ) : null}
+                  </div>
+                ))}
               </div>
             </div>
+
+            {(() => {
+              const mappedOffice = OFFICES.find((o) => o.mapEmbedQuery && o.mapShortUrl);
+              if (!mappedOffice || !mappedOffice.mapEmbedQuery || !mappedOffice.mapShortUrl) {
+                return null;
+              }
+              const embedSrc = buildMapsEmbedSrc(mappedOffice.mapEmbedQuery);
+              return (
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground mb-6">
+                    Find {mappedOffice.region}
+                  </h2>
+                  <div className="bg-background border border-border rounded shadow-sm overflow-hidden">
+                    <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                      <iframe
+                        src={embedSrc}
+                        title={`Google Map showing the Vision9 ${mappedOffice.region} office at ${mappedOffice.mapEmbedQuery}`}
+                        loading="lazy"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        allowFullScreen
+                        className="absolute inset-0 h-full w-full border-0"
+                      />
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-5 py-4 border-t border-border bg-muted">
+                      <p className="text-sm text-secondary">
+                        {mappedOffice.street ? `${mappedOffice.street}, ` : ""}
+                        {mappedOffice.locality}, {mappedOffice.province} {mappedOffice.postalCode}
+                      </p>
+                      <a
+                        href={mappedOffice.mapShortUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-semibold text-primary hover:underline"
+                      >
+                        Open in Google Maps →
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </Reveal>
 
         </div>

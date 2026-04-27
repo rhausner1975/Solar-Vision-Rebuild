@@ -41,7 +41,11 @@ After codegen, `lib/api-zod/src/index.ts` must be `export * from "./generated/ap
 - `NOTIFY_EMAIL_TO` (optional override; defaults to `info@vision9.biz`)
 
 ## Contact (matches the real business)
-613 813 4305 · info@vision9.biz · Marmora ON K0K 2M0 · Kirkland Lake ON P2N 3C8
+- Primary: **705 570 5034** · info@vision9.biz
+- Southern Ontario office: Marmora ON K0K 2M0 · **613 813 4305**
+- Northern Ontario office: 519 Government Rd W, Chaput Hughes ON P0K 1A0
+- Single source of truth: `artifacts/vision9-solar/src/lib/siteContact.ts` (`SITE_CONTACT`, `OFFICES`, `buildMapsEmbedSrc`). Footer (Shell), Contact, Modular Racking, and JSON-LD all read from it.
+- Contact page renders an embedded Google Map (no-API-key iframe `https://www.google.com/maps?q=…&output=embed`) for the Northern Ontario office, with an "Open in Google Maps" link to https://maps.app.goo.gl/Xfkd9XMop5tpSULW7.
 
 ## Motion / "premium feel" foundation (Task #71)
 - `framer-motion` + `lenis` (smooth scroll). All primitives respect `useReducedMotion`.

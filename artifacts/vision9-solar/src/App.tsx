@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { PageTransition, SmoothScroll } from "@/components/motion";
+import { OFFICES, SITE_CONTACT } from "@/lib/siteContact";
 
 // Layouts
 import { Shell } from "@/components/layout/Shell";
@@ -109,26 +110,35 @@ function App() {
     "@type": ["Organization", "LocalBusiness"],
     "name": "Vision9 Solar Inc.",
     "areaServed": "Ontario, Canada",
-    "telephone": "+1-613-813-4305",
-    "email": "info@vision9.biz",
+    "telephone": SITE_CONTACT.primaryPhoneStructured,
+    "email": SITE_CONTACT.emailDisplay,
     "url": "https://vision9solar.com",
     "logo": "https://vision9solar.com/src/assets/source/Asset-3.png",
-    "address": [
+    "address": OFFICES.map((office) => ({
+      "@type": "PostalAddress",
+      ...(office.street ? { "streetAddress": office.street } : {}),
+      "addressLocality": office.locality,
+      "addressRegion": office.province,
+      "postalCode": office.postalCode,
+      "addressCountry": office.country,
+    })),
+    "contactPoint": [
       {
-        "@type": "PostalAddress",
-        "addressLocality": "Marmora",
-        "addressRegion": "ON",
-        "postalCode": "K0K 2M0",
-        "addressCountry": "CA"
+        "@type": "ContactPoint",
+        "telephone": SITE_CONTACT.primaryPhoneStructured,
+        "contactType": "sales",
+        "areaServed": "CA",
+        "availableLanguage": ["English"],
       },
-      {
-        "@type": "PostalAddress",
-        "addressLocality": "Kirkland Lake",
-        "addressRegion": "ON",
-        "postalCode": "P2N 3C8",
-        "addressCountry": "CA"
-      }
-    ]
+      ...OFFICES.filter((o) => o.phoneTel).map((office) => ({
+        "@type": "ContactPoint",
+        "telephone": `+1-${office.phoneTel!.slice(0, 3)}-${office.phoneTel!.slice(3, 6)}-${office.phoneTel!.slice(6)}`,
+        "contactType": "customer service",
+        "areaServed": "CA",
+        "availableLanguage": ["English"],
+        "name": `${office.region} Office`,
+      })),
+    ],
   };
 
   return (

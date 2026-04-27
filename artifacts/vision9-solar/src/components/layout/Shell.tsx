@@ -3,6 +3,7 @@ import { Menu, X, Phone, Mail, MapPin } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/source/Asset-3.png";
+import { OFFICES, SITE_CONTACT } from "@/lib/siteContact";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -23,10 +24,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
     <div className="min-h-[100dvh] flex flex-col bg-background text-foreground font-sans">
       {/* Top Utility Strip */}
       <div className="bg-primary text-primary-foreground text-sm font-medium py-2 px-4 flex flex-col sm:flex-row justify-center sm:justify-between items-center gap-2">
-        <span>Proudly serving Marmora Ontario and surrounding areas!</span>
-        <a href="tel:6138134305" className="hover:underline flex items-center gap-2">
+        <span>{SITE_CONTACT.topBarTagline}</span>
+        <a href={`tel:${SITE_CONTACT.primaryPhoneTel}`} className="hover:underline flex items-center gap-2">
           <Phone className="h-4 w-4" />
-          Call: 613 813 4305
+          Call: {SITE_CONTACT.primaryPhoneDisplay}
         </a>
       </div>
 
@@ -111,11 +112,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <ul className="space-y-3 text-gray-300">
               <li className="flex items-start gap-3">
                 <Phone className="h-5 w-5 shrink-0 text-primary" />
-                <a href="tel:6138134305" className="hover:text-primary transition-colors">613 813 4305</a>
+                <a href={`tel:${SITE_CONTACT.primaryPhoneTel}`} className="hover:text-primary transition-colors">{SITE_CONTACT.primaryPhoneDisplay}</a>
               </li>
               <li className="flex items-start gap-3">
                 <Mail className="h-5 w-5 shrink-0 text-primary" />
-                <a href="mailto:info@vision9.biz" className="hover:text-primary transition-colors">info@vision9.biz</a>
+                <a href={SITE_CONTACT.emailHref} className="hover:text-primary transition-colors">{SITE_CONTACT.emailDisplay}</a>
               </li>
             </ul>
           </div>
@@ -123,20 +124,25 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <div>
             <h3 className="text-lg font-bold mb-4 text-white">Offices</h3>
             <ul className="space-y-4 text-gray-300">
-              <li className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 shrink-0 text-primary" />
-                <div>
-                  <p className="font-semibold text-white">Southern Ontario</p>
-                  <p>Marmora ON. K0K 2M0</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 shrink-0 text-primary" />
-                <div>
-                  <p className="font-semibold text-white">Northern Ontario</p>
-                  <p>Kirkland Lake ON. P2N 3C8</p>
-                </div>
-              </li>
+              {OFFICES.map((office) => (
+                <li key={office.id} className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 shrink-0 text-primary" />
+                  <div>
+                    <p className="font-semibold text-white">{office.region}</p>
+                    {office.street ? <p>{office.street}</p> : null}
+                    <p>{office.locality}, {office.province} {office.postalCode}</p>
+                    {office.phoneTel && office.phoneDisplay ? (
+                      <a
+                        href={`tel:${office.phoneTel}`}
+                        className="inline-flex items-center gap-2 mt-1 hover:text-primary transition-colors"
+                      >
+                        <Phone className="h-4 w-4 text-primary" />
+                        <span>{office.phoneDisplay}</span>
+                      </a>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
