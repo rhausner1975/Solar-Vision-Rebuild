@@ -5,7 +5,7 @@ import { useListPublicGalleries } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, StaggerChildren, StaggerItem, Counter } from "@/components/motion";
 import heroImg from "@/assets/source/hero-ground-mount-install.jpg";
-import builderImg from "@/assets/source/commercial-rooftop-array.jpg";
+import builderImg from "@/assets/source/builder-feature.png";
 import reliabilityImg from "@/assets/source/crew-installing-frame.jpg";
 
 const STATS = [
