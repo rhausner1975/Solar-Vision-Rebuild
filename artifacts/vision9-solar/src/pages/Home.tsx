@@ -89,7 +89,7 @@ export default function Home() {
 
           <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
             <Reveal className="order-2 md:order-1">
-              <img src={builderImg} alt="Vision9 Solar commercial rooftop solar array — Kirkland Lake, Ontario" className="w-full h-72 md:h-96 rounded shadow-lg object-cover" loading="lazy" />
+              <img src={builderImg} alt="Vision9 Solar commercial rooftop solar array installation in Northern Ontario" className="w-full h-72 md:h-96 rounded shadow-lg object-cover" loading="lazy" />
             </Reveal>
             <Reveal className="order-1 md:order-2 space-y-6" delay={0.1}>
               <h3 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">Hassle-Free Power Anywhere</h3>
