@@ -4,7 +4,7 @@ import { ArrowRight, CheckCircle2, Image as ImageIcon, Sparkles } from "lucide-r
 import { useListPublicGalleries } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, StaggerChildren, StaggerItem, Counter } from "@/components/motion";
-import heroImg from "@/assets/source/hero-ground-mount-install.jpg";
+import heroImg from "@/assets/source/hero-tracker-worker-winter.jpg";
 import builderImg from "@/assets/source/builder-feature.png";
 import reliabilityImg from "@/assets/source/crew-installing-frame.jpg";
 
@@ -46,7 +46,7 @@ export default function Home() {
             </div>
           </Reveal>
           <Reveal className="relative z-10" delay={0.15}>
-            <img src={heroImg} alt="Vision9 Solar ground-mount array installation at golden hour in rural Ontario" className="w-full h-auto rounded-lg shadow-2xl object-cover aspect-[4/3]" loading="eager" />
+            <img src={heroImg} alt="Vision9 Solar dual-axis solar tracker fully built with a technician standing in front during a winter install in Northern Ontario" className="w-full h-auto rounded-lg shadow-2xl object-cover aspect-[4/3]" loading="eager" />
           </Reveal>
         </div>
       </section>
