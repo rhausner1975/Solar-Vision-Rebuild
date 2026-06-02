@@ -1,0 +1,26 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "PrlLWjGx1R48I8vvNOSex"
+uri = "file://.tmp/options/option_89.webp"
+type = "image"
+title = "Option 1 (image 89)"
+
+[[outputs]]
+id = "hgQ_VYL4gcDLOGC-Fy4CT"
+uri = "file://.tmp/options/option_90.webp"
+type = "image"
+title = "Option 2 (image 90)"
+
+[[outputs]]
+id = "WarxdjXmOltBZyHEch0GG"
+uri = "file://.tmp/options/option_91.webp"
+type = "image"
+title = "Option 3 (image 91)"
+
+[[outputs]]
+id = "M7y2xg1u-soiITdV4cQ-K"
+uri = "file://.tmp/options/option_92.webp"
+type = "image"
+title = "Option 4 (image 92 — portrait)"
