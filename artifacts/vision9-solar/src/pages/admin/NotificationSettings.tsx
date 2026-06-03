@@ -591,7 +591,7 @@ export default function NotificationSettings() {
 
                 <div className="pt-4 border-t space-y-3">
                   <div>
-                    <FormLabel>SMS recipient phone numbers</FormLabel>
+                    <label className="text-sm font-medium leading-none">SMS recipient phone numbers</label>
                     <p className="text-xs text-secondary mt-1">
                       Phone numbers that receive a text message for new leads. Use E.164 format
                       (country code with +). Add as many as needed; leave empty to disable SMS.

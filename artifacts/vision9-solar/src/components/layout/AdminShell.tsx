@@ -1,6 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, LogOut, LayoutDashboard, MessageSquare, FileText, Image as ImageIcon, Key, Bell } from "lucide-react";
+import { useEffect } from "react";
 import {
   useAdminMe,
   useAdminLogout,
@@ -35,19 +36,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const logout = useAdminLogout();
 
   // Redirect if not logged in
-  if (error) {
-    setLocation("/admin/login");
-    return null;
-  }
-
-  if (isLoading || !me) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
+  useEffect(() => {
+    if (error) setLocation("/admin/login");
+  }, [error, setLocation]);
 
   // Force password change if required
-  if (me.mustChangePassword && location !== "/admin/account") {
-    setLocation("/admin/account");
-    return null;
+  useEffect(() => {
+    if (me && me.mustChangePassword && location !== "/admin/account") {
+      setLocation("/admin/account");
+    }
+  }, [me, location, setLocation]);
+
+  if (error || isLoading || !me) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
   const handleLogout = () => {

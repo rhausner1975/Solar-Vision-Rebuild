@@ -34,40 +34,34 @@ export default function Dashboard() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          <Link href="/admin/contact">
-            <a className="block p-6 bg-background rounded-lg border border-border shadow-sm hover:shadow-md transition-shadow hover-elevate">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-foreground">Contact Submissions</h3>
-                <MessageSquare className="h-5 w-5 text-primary" />
-              </div>
-              <div className="text-3xl font-extrabold text-foreground">
-                {contacts?.length || 0}
-              </div>
-            </a>
+          <Link href="/admin/contact" className="block p-6 bg-background rounded-lg border border-border shadow-sm hover:shadow-md transition-shadow hover-elevate">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-foreground">Contact Submissions</h3>
+              <MessageSquare className="h-5 w-5 text-primary" />
+            </div>
+            <div className="text-3xl font-extrabold text-foreground">
+              {contacts?.length || 0}
+            </div>
           </Link>
 
-          <Link href="/admin/estimates">
-            <a className="block p-6 bg-background rounded-lg border border-border shadow-sm hover:shadow-md transition-shadow hover-elevate">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-foreground">Estimate Requests</h3>
-                <FileText className="h-5 w-5 text-primary" />
-              </div>
-              <div className="text-3xl font-extrabold text-foreground">
-                {estimates?.length || 0}
-              </div>
-            </a>
+          <Link href="/admin/estimates" className="block p-6 bg-background rounded-lg border border-border shadow-sm hover:shadow-md transition-shadow hover-elevate">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-foreground">Estimate Requests</h3>
+              <FileText className="h-5 w-5 text-primary" />
+            </div>
+            <div className="text-3xl font-extrabold text-foreground">
+              {estimates?.length || 0}
+            </div>
           </Link>
 
-          <Link href="/admin/galleries">
-            <a className="block p-6 bg-background rounded-lg border border-border shadow-sm hover:shadow-md transition-shadow hover-elevate">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-foreground">Galleries</h3>
-                <ImageIcon className="h-5 w-5 text-primary" />
-              </div>
-              <div className="text-3xl font-extrabold text-foreground">
-                {galleries?.length || 0}
-              </div>
-            </a>
+          <Link href="/admin/galleries" className="block p-6 bg-background rounded-lg border border-border shadow-sm hover:shadow-md transition-shadow hover-elevate">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-foreground">Galleries</h3>
+              <ImageIcon className="h-5 w-5 text-primary" />
+            </div>
+            <div className="text-3xl font-extrabold text-foreground">
+              {galleries?.length || 0}
+            </div>
           </Link>
         </div>
 
