@@ -54,11 +54,11 @@ import {
 } from "@/components/motion";
 import { submitContactSubmission } from "@/lib/publicForms";
 
-import heroPhoto from "@/assets/source/racking-field-cottage-winter.png";
-import workshopTwin from "@/assets/source/racking-workshop-twin-frame.png";
-import workshopGarage from "@/assets/source/racking-workshop-garage-build.png";
-import fieldResidential from "@/assets/source/racking-field-residential-snow.png";
-import fieldLowAngle from "@/assets/source/racking-field-low-angle-snow.png";
+import heroPhoto from "@/assets/source/racking-field-cottage-winter.webp";
+import workshopTwin from "@/assets/source/racking-workshop-twin-frame.webp";
+import workshopGarage from "@/assets/source/racking-workshop-garage-build.webp";
+import fieldResidential from "@/assets/source/racking-field-residential-snow.webp";
+import fieldLowAngle from "@/assets/source/racking-field-low-angle-snow.webp";
 
 const TRUST_BADGES = [
   { icon: HardHat, label: "10 Years Field Experience", sub: "Commercial solar O&M background" },

@@ -2,15 +2,19 @@ import { useRef } from "react";
 import { Link } from "wouter";
 import { Helmet } from "react-helmet-async";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
-import { ArrowRight, CheckCircle2, Image as ImageIcon, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, Image as ImageIcon } from "lucide-react";
 import { useListPublicGalleries } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, StaggerChildren, StaggerItem, Counter } from "@/components/motion";
 import heroImg from "@/assets/source/hero-tracker-worker-winter.jpg";
-import builderImg from "@/assets/source/builder-feature.png";
+import builderImg from "@/assets/source/builder-feature.webp";
 import commercialScaleImg from "@/assets/source/commercial-ground-mount-build.jpg";
 import modularRackingV3Img from "@/assets/source/modular-racking-v3-field-install.jpg";
-import offGridLivingImg from "@/assets/source/racking-field-cottage-winter.png";
+import netMeteringImg from "@/assets/source/net-metering-residential.jpg";
+import rackingFlatImg from "@/assets/source/modular-racking-flat-transport.jpg";
+import racking45Img from "@/assets/source/modular-racking-45deg.jpg";
+import racking28Img from "@/assets/source/modular-racking-28deg.jpg";
+import rackingIcon from "@/assets/source/modular-racking-icon-128.png";
 
 const STATS = [
   { value: 10, suffix: "+", label: "Years of field experience" },
@@ -30,9 +34,9 @@ const EXPERTISE_PHOTOS = [
     alt: "Vision9 Solar's Modular Racking V3 ground-mount system installed and operational in the field",
   },
   {
-    src: offGridLivingImg,
-    label: "Off-Grid Living",
-    alt: "Off-grid solar panel installation at a remote winter property in Northern Ontario",
+    src: netMeteringImg,
+    label: "Net Metering",
+    alt: "Residential net-metering solar installation at a home in Ontario",
   },
 ] as const;
 
@@ -103,6 +107,106 @@ function ExpertisePhoto({
         {photo.label}
       </span>
     </div>
+  );
+}
+
+const ANGLE_PHOTOS = [
+  {
+    src: rackingFlatImg,
+    angle: "0°",
+    label: "Flat — Transport & Stow",
+    alt: "Vision9 Modular Racking in flat position for transport and storage",
+  },
+  {
+    src: racking45Img,
+    angle: "45°",
+    label: "45° — Spring & Fall",
+    alt: "Vision9 Modular Racking at 45 degrees for optimal spring and fall production",
+  },
+  {
+    src: racking28Img,
+    angle: "28°",
+    label: "28° — Summer (Southern Ontario)",
+    alt: "Vision9 Modular Racking at 28 degrees for optimal summer production",
+  },
+] as const;
+
+function ModularRackingSection() {
+  const shouldReduceMotion = useReducedMotion();
+  const sectionRef = useRef<HTMLElement>(null);
+
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"],
+  });
+
+  const clusterY = useTransform(scrollYProgress, [0, 1], [40, -40]);
+
+  return (
+    <section ref={sectionRef} className="relative bg-primary/5 py-24 md:py-28 overflow-hidden border-y border-primary/10">
+      <div className="container mx-auto px-4">
+        {/* Header */}
+        <Reveal className="max-w-4xl mx-auto text-center mb-12 md:mb-16">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <img
+              src={rackingIcon}
+              alt=""
+              className="h-12 w-12 md:h-14 md:w-14 object-contain drop-shadow-md"
+              loading="lazy"
+            />
+            <p className="text-xs font-bold tracking-[0.18em] uppercase text-primary">
+              Introducing — Vision9 Modular Racking
+            </p>
+          </div>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground leading-tight tracking-tight mb-4">
+            Built for Ontario's seasons. Adjusted by design.
+          </h2>
+          <p className="text-secondary text-lg md:text-xl leading-relaxed max-w-3xl mx-auto">
+            A modular solar racking system born from 10 years of field experience.
+            2-person installation. Snow-load engineered for Canadian winters.
+            One frame, three angles — all season long.
+          </p>
+        </Reveal>
+
+        {/* Photo Grid */}
+        <motion.div style={shouldReduceMotion ? undefined : { y: clusterY }}>
+          <StaggerChildren className="grid grid-cols-1 sm:grid-cols-3 gap-5 md:gap-6" staggerDelay={0.15} amount={0.2}>
+            {ANGLE_PHOTOS.map((photo) => (
+              <StaggerItem key={photo.angle}>
+                <div className="relative overflow-hidden rounded-xl shadow-lg group">
+                  <img
+                    src={photo.src}
+                    alt={photo.alt}
+                    className="w-full h-full object-cover aspect-[4/3] transition-transform duration-700 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-foreground/70 to-transparent" />
+                  <div className="absolute bottom-3 left-3 right-3">
+                    <span className="inline-block rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow-sm mb-1">
+                      {photo.angle}
+                    </span>
+                    <span className="block rounded bg-background/90 px-3 py-1.5 text-xs md:text-sm font-semibold text-foreground shadow-sm">
+                      {photo.label}
+                    </span>
+                  </div>
+                </div>
+              </StaggerItem>
+            ))}
+          </StaggerChildren>
+        </motion.div>
+
+        {/* CTA */}
+        <Reveal className="text-center mt-10 md:mt-14" delay={0.2}>
+          <Link
+            href="/modular-racking"
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-semibold text-base transition-colors duration-200 shadow-sm hover:shadow-md"
+          >
+            Learn more about Modular Racking
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </Reveal>
+      </div>
+    </section>
   );
 }
 
@@ -215,44 +319,8 @@ export default function Home() {
       {/* Expertise Section */}
       <ExpertiseSection />
 
-      {/* Modular Racking Callout */}
-      <section className="bg-background py-16 md:py-20">
-        <div className="container mx-auto px-4">
-          <Reveal>
-            <Link
-              href="/modular-racking"
-              className="group block rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors duration-300 p-6 md:p-10"
-              data-testid="home-modular-racking-callout"
-            >
-              <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
-                <div className="shrink-0 h-14 w-14 md:h-16 md:w-16 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-md">
-                  <Sparkles className="h-7 w-7 md:h-8 md:w-8" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs font-bold tracking-[0.18em] uppercase text-primary mb-2">
-                    Introducing — Vision9 Modular Racking
-                  </p>
-                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground leading-tight tracking-tight mb-2">
-                    A modular solar racking system, built from 10 years in the field.
-                  </h2>
-                  <p className="text-secondary text-base md:text-lg leading-relaxed">
-                    Seasonal angle adjustment. 2-person installation. Snow-load
-                    engineered for Canadian winters.
-                  </p>
-                </div>
-                <div className="shrink-0 hidden md:flex items-center gap-2 text-primary font-semibold group-hover:translate-x-1 transition-transform duration-200">
-                  Learn more
-                  <ArrowRight className="h-4 w-4" />
-                </div>
-              </div>
-              <div className="md:hidden mt-4 inline-flex items-center gap-2 text-primary font-semibold group-hover:translate-x-1 transition-transform duration-200">
-                Learn more
-                <ArrowRight className="h-4 w-4" />
-              </div>
-            </Link>
-          </Reveal>
-        </div>
-      </section>
+      {/* Modular Racking Section */}
+      <ModularRackingSection />
 
       {/* Recent Projects Section */}
       {(galleriesLoading || recentGalleries.length > 0) && (
