@@ -11,10 +11,10 @@ import builderImg from "@/assets/source/builder-feature.webp";
 import commercialScaleImg from "@/assets/source/commercial-ground-mount-build.jpg";
 import modularRackingV3Img from "@/assets/source/modular-racking-v3-field-install.jpg";
 import netMeteringImg from "@/assets/source/net-metering-residential.jpg";
-import rackingFlatImg from "@/assets/source/modular-racking-flat-transport.jpg";
-import racking45Img from "@/assets/source/modular-racking-45deg.jpg";
-import racking28Img from "@/assets/source/modular-racking-28deg.jpg";
-import rackingIcon from "@/assets/source/modular-racking-icon-128.png";
+import modularRackingIcon from "@/assets/source/modular-racking-icon.svg";
+import modularFlatImg from "@/assets/source/modular-flat-transport.jpg";
+import modular45Img from "@/assets/source/modular-45-spring-fall.jpg";
+import modular28Img from "@/assets/source/modular-28-summer.jpg";
 
 const STATS = [
   { value: 10, suffix: "+", label: "Years of field experience" },
@@ -37,6 +37,30 @@ const EXPERTISE_PHOTOS = [
     src: netMeteringImg,
     label: "Net Metering",
     alt: "Residential net-metering solar installation at a home in Ontario",
+  },
+] as const;
+
+const MODULAR_ANGLES = [
+  {
+    src: modularFlatImg,
+    angle: "Flat",
+    season: "Transport / Stow",
+    purpose: "Laid flat for transport and storm protection.",
+    alt: "Vision9 Modular Racking unit laid flat to the ground in stow position for transport",
+  },
+  {
+    src: modular45Img,
+    angle: "45°",
+    season: "Spring & Fall",
+    purpose: "Steep tilt to capture the low shoulder-season sun.",
+    alt: "Vision9 Modular Racking unit tilted to a steep 45-degree angle for spring and fall",
+  },
+  {
+    src: modular28Img,
+    angle: "28°",
+    season: "Summer · Southern Ontario",
+    purpose: "Optimized summer angle for peak production.",
+    alt: "Vision9 Modular Racking unit set to a 28-degree summer angle in Southern Ontario",
   },
 ] as const;
 
@@ -110,27 +134,6 @@ function ExpertisePhoto({
   );
 }
 
-const ANGLE_PHOTOS = [
-  {
-    src: rackingFlatImg,
-    angle: "0°",
-    label: "Flat — Transport & Stow",
-    alt: "Vision9 Modular Racking in flat position for transport and storage",
-  },
-  {
-    src: racking45Img,
-    angle: "45°",
-    label: "45° — Spring & Fall",
-    alt: "Vision9 Modular Racking at 45 degrees for optimal spring and fall production",
-  },
-  {
-    src: racking28Img,
-    angle: "28°",
-    label: "28° — Summer (Southern Ontario)",
-    alt: "Vision9 Modular Racking at 28 degrees for optimal summer production",
-  },
-] as const;
-
 function ModularRackingSection() {
   const shouldReduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
@@ -140,70 +143,92 @@ function ModularRackingSection() {
     offset: ["start end", "end start"],
   });
 
-  const clusterY = useTransform(scrollYProgress, [0, 1], [40, -40]);
+  const photosY = useTransform(scrollYProgress, [0, 1], [70, -70]);
 
   return (
-    <section ref={sectionRef} className="relative bg-primary/5 py-24 md:py-28 overflow-hidden border-y border-primary/10">
+    <section
+      ref={sectionRef}
+      className="relative bg-background py-24 md:py-28 overflow-hidden"
+    >
       <div className="container mx-auto px-4">
-        {/* Header */}
-        <Reveal className="max-w-4xl mx-auto text-center mb-12 md:mb-16">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <img
-              src={rackingIcon}
-              alt=""
-              className="h-12 w-12 md:h-14 md:w-14 object-contain drop-shadow-md"
-              loading="lazy"
-            />
+        <Reveal className="max-w-3xl mx-auto text-center mb-14 md:mb-16">
+          <div className="flex flex-col items-center gap-5">
+            <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-background ring-1 ring-primary/25 shadow-md flex items-center justify-center">
+              <img
+                src={modularRackingIcon}
+                alt=""
+                aria-hidden="true"
+                className="h-11 w-11 md:h-14 md:w-14"
+              />
+            </div>
             <p className="text-xs font-bold tracking-[0.18em] uppercase text-primary">
               Introducing — Vision9 Modular Racking
             </p>
           </div>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground leading-tight tracking-tight mb-4">
-            Built for Ontario's seasons. Adjusted by design.
+          <h2 className="mt-4 text-3xl md:text-4xl lg:text-5xl font-bold text-foreground leading-tight tracking-tight">
+            One unit. Every season's angle.
           </h2>
-          <p className="text-secondary text-lg md:text-xl leading-relaxed max-w-3xl mx-auto">
-            A modular solar racking system born from 10 years of field experience.
-            2-person installation. Snow-load engineered for Canadian winters.
-            One frame, three angles — all season long.
+          <p className="mt-5 text-secondary text-lg leading-relaxed">
+            Our signature seasonal angle adjustment lets a single modular unit
+            move from a flat stow position to the ideal tilt for spring, summer,
+            and fall — no tools, no extra hardware. Engineered for Canadian
+            snow loads and a 2-person installation.
           </p>
         </Reveal>
 
-        {/* Photo Grid */}
-        <motion.div style={shouldReduceMotion ? undefined : { y: clusterY }}>
-          <StaggerChildren className="grid grid-cols-1 sm:grid-cols-3 gap-5 md:gap-6" staggerDelay={0.15} amount={0.2}>
-            {ANGLE_PHOTOS.map((photo) => (
-              <StaggerItem key={photo.angle}>
-                <div className="relative overflow-hidden rounded-xl shadow-lg group">
+        <motion.div style={shouldReduceMotion ? undefined : { y: photosY }}>
+          <StaggerChildren
+            className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6"
+            staggerDelay={0.15}
+            amount={0.2}
+          >
+            {MODULAR_ANGLES.map((item) => (
+              <StaggerItem key={item.angle}>
+                <figure
+                  className="group relative overflow-hidden rounded-xl shadow-lg aspect-[4/3]"
+                  data-testid={`home-modular-angle-${item.angle.toLowerCase().replace(/[^a-z0-9]/g, "")}`}
+                >
                   <img
-                    src={photo.src}
-                    alt={photo.alt}
-                    className="w-full h-full object-cover aspect-[4/3] transition-transform duration-700 group-hover:scale-105"
+                    src={item.src}
+                    alt={item.alt}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     loading="lazy"
                   />
-                  <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-foreground/70 to-transparent" />
-                  <div className="absolute bottom-3 left-3 right-3">
-                    <span className="inline-block rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow-sm mb-1">
-                      {photo.angle}
-                    </span>
-                    <span className="block rounded bg-background/90 px-3 py-1.5 text-xs md:text-sm font-semibold text-foreground shadow-sm">
-                      {photo.label}
-                    </span>
-                  </div>
-                </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-foreground/85 via-foreground/25 to-transparent" />
+                  <figcaption className="absolute inset-x-0 bottom-0 p-4 md:p-5">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl md:text-3xl font-extrabold text-primary leading-none tabular-nums">
+                        {item.angle}
+                      </span>
+                      <span className="text-sm md:text-base font-semibold text-white">
+                        {item.season}
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-xs md:text-sm text-gray-200 leading-snug">
+                      {item.purpose}
+                    </p>
+                  </figcaption>
+                </figure>
               </StaggerItem>
             ))}
           </StaggerChildren>
         </motion.div>
 
-        {/* CTA */}
-        <Reveal className="text-center mt-10 md:mt-14" delay={0.2}>
-          <Link
-            href="/modular-racking"
-            className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-semibold text-base transition-colors duration-200 shadow-sm hover:shadow-md"
+        <Reveal className="mt-12 text-center" delay={0.1}>
+          <Button
+            asChild
+            size="lg"
+            className="font-semibold rounded transition-transform duration-200 hover:-translate-y-0.5"
           >
-            Learn more about Modular Racking
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+            <Link
+              href="/modular-racking"
+              className="flex items-center gap-2"
+              data-testid="home-modular-racking-callout"
+            >
+              Explore Modular Racking
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
         </Reveal>
       </div>
     </section>

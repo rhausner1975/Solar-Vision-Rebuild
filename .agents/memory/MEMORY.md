@@ -1,0 +1,1 @@
+- [Screenshot reduced motion](screenshot-reduced-motion.md) — app_preview/test browser runs with prefers-reduced-motion on; motion shows its instant fallback, not animation.
