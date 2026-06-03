@@ -1,18 +1,110 @@
+import { useRef } from "react";
 import { Link } from "wouter";
 import { Helmet } from "react-helmet-async";
+import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { ArrowRight, CheckCircle2, Image as ImageIcon, Sparkles } from "lucide-react";
 import { useListPublicGalleries } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, StaggerChildren, StaggerItem, Counter } from "@/components/motion";
 import heroImg from "@/assets/source/hero-tracker-worker-winter.jpg";
 import builderImg from "@/assets/source/builder-feature.png";
-import reliabilityImg from "@/assets/source/crew-installing-frame.jpg";
+import commercialScaleImg from "@/assets/source/commercial-ground-mount-build.jpg";
+import modularRackingV3Img from "@/assets/source/modular-racking-v3-field-install.jpg";
+import offGridLivingImg from "@/assets/source/racking-field-cottage-winter.png";
 
 const STATS = [
   { value: 10, suffix: "+", label: "Years of field experience" },
   { value: 100, suffix: "+", label: "Solar installations supported" },
   { value: 2, suffix: "", label: "Ontario offices serving you" },
 ];
+
+const EXPERTISE_PHOTOS = [
+  {
+    src: commercialScaleImg,
+    label: "Commercial Scale",
+    alt: "Vision9 Solar crew assembling a large commercial ground-mount solar array",
+  },
+  {
+    src: modularRackingV3Img,
+    label: "Modular Racking V3 — Installed & Operational",
+    alt: "Vision9 Solar's Modular Racking V3 ground-mount system installed and operational in the field",
+  },
+  {
+    src: offGridLivingImg,
+    label: "Off-Grid Living",
+    alt: "Off-grid solar panel installation at a remote winter property in Northern Ontario",
+  },
+] as const;
+
+function ExpertiseSection() {
+  const shouldReduceMotion = useReducedMotion();
+  const sectionRef = useRef<HTMLElement>(null);
+
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"],
+  });
+
+  const clusterY = useTransform(scrollYProgress, [0, 1], [60, -60]);
+
+  return (
+    <section ref={sectionRef} className="relative py-24 md:py-28 bg-background overflow-hidden">
+      <div className="container mx-auto px-4">
+        <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <Reveal className="space-y-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">Expertise You Can Count On</h2>
+            <p className="text-secondary text-lg leading-relaxed">
+              From small residential net-metering sites to large commercial installations, our team brings together technicians with diverse backgrounds in mechanical engineering, automotive R&D, and IT networking. We've spent years in the field maintaining solar sites across that full range, giving us deep insight into how build choices affect long-term reliability.
+            </p>
+            <p className="text-secondary text-lg leading-relaxed">
+              We design with failure mode analysis in mind, building top-tier systems with redundancies that work with minimal maintenance — from our Modular Racking V3 ground mounts to fully off-grid home builds in remote locations.
+            </p>
+            <Button asChild size="lg" className="mt-4 rounded font-semibold">
+              <Link href="/contact">Contact Our Team</Link>
+            </Button>
+          </Reveal>
+
+          <motion.div style={shouldReduceMotion ? undefined : { y: clusterY }}>
+            <StaggerChildren className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5" staggerDelay={0.15} amount={0.2}>
+              <StaggerItem className="sm:col-span-2">
+                <ExpertisePhoto photo={EXPERTISE_PHOTOS[0]} className="aspect-[16/9]" />
+              </StaggerItem>
+              <StaggerItem>
+                <ExpertisePhoto photo={EXPERTISE_PHOTOS[1]} className="aspect-[4/3] sm:aspect-square" />
+              </StaggerItem>
+              <StaggerItem>
+                <ExpertisePhoto photo={EXPERTISE_PHOTOS[2]} className="aspect-[4/3] sm:aspect-square" />
+              </StaggerItem>
+            </StaggerChildren>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ExpertisePhoto({
+  photo,
+  className,
+}: {
+  photo: (typeof EXPERTISE_PHOTOS)[number];
+  className?: string;
+}) {
+  return (
+    <div className={`relative overflow-hidden rounded shadow-lg ${className ?? ""}`}>
+      <img
+        src={photo.src}
+        alt={photo.alt}
+        className="absolute inset-0 h-full w-full object-cover"
+        loading="lazy"
+      />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-foreground/70 to-transparent" />
+      <span className="absolute bottom-3 left-3 right-3 rounded bg-background/90 px-3 py-1.5 text-xs md:text-sm font-semibold text-foreground shadow-sm">
+        {photo.label}
+      </span>
+    </div>
+  );
+}
 
 export default function Home() {
   const { data: galleries, isLoading: galleriesLoading } = useListPublicGalleries();
@@ -120,28 +212,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Reliability Section */}
-      <section className="py-24 md:py-28 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <Reveal className="space-y-6">
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">Expertise You Can Count On</h2>
-              <p className="text-secondary text-lg leading-relaxed">
-                Our team brings together technicians with diverse backgrounds in mechanical engineering, automotive R&D, and IT networking. We've spent years in the field maintaining commercial solar sites, giving us deep insight into how build choices affect long-term reliability.
-              </p>
-              <p className="text-secondary text-lg leading-relaxed">
-                We design with failure mode analysis in mind, building top-tier systems with redundancies that work with minimal maintenance in remote locations.
-              </p>
-              <Button asChild size="lg" className="mt-4 rounded font-semibold">
-                <Link href="/contact">Contact Our Team</Link>
-              </Button>
-            </Reveal>
-            <Reveal delay={0.1}>
-              <img src={reliabilityImg} alt="Vision9 Solar crew assembling a residential ground-mount system" className="w-full h-96 md:h-[28rem] rounded shadow-lg object-cover" loading="lazy" />
-            </Reveal>
-          </div>
-        </div>
-      </section>
+      {/* Expertise Section */}
+      <ExpertiseSection />
 
       {/* Modular Racking Callout */}
       <section className="bg-background py-16 md:py-20">
