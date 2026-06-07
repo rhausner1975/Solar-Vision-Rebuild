@@ -2,11 +2,10 @@ import { useRef } from "react";
 import { Link } from "wouter";
 import { Helmet } from "react-helmet-async";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
-import { ArrowRight, CheckCircle2, Image as ImageIcon } from "lucide-react";
+import { ArrowRight, CheckCircle2, Image as ImageIcon, HardHat, Users, Snowflake, MapPin } from "lucide-react";
 import { useListPublicGalleries } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, StaggerChildren, StaggerItem, Counter } from "@/components/motion";
-import heroImg from "@/assets/source/hero-tracker-worker-winter.jpg";
 import builderImg from "@/assets/source/builder-feature.webp";
 import commercialScaleImg from "@/assets/source/commercial-ground-mount-build.jpg";
 import modularRackingV3Img from "@/assets/source/modular-racking-v3-field-install.jpg";
@@ -62,6 +61,13 @@ const MODULAR_ANGLES = [
     purpose: "Optimized summer angle for peak production.",
     alt: "Vision9 Modular Racking unit set to a 28-degree summer angle in Southern Ontario",
   },
+] as const;
+
+const CREDIBILITY = [
+  { icon: HardHat, label: "Field-Proven Design", sub: "Born from a decade of solar O&M" },
+  { icon: Users, label: "2-Person Installation", sub: "No specialized crew required" },
+  { icon: Snowflake, label: "Snow-Load Engineered", sub: "Built for Ontario winters" },
+  { icon: MapPin, label: "Ontario-Built & Supplied", sub: "Designed and made here" },
 ] as const;
 
 function ExpertiseSection() {
@@ -134,7 +140,7 @@ function ExpertisePhoto({
   );
 }
 
-function ModularRackingSection() {
+function ModularRackingSection({ id }: { id?: string }) {
   const shouldReduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -147,8 +153,9 @@ function ModularRackingSection() {
 
   return (
     <section
+      id={id}
       ref={sectionRef}
-      className="relative bg-background py-24 md:py-28 overflow-hidden"
+      className="relative bg-background py-24 md:py-28 overflow-hidden scroll-mt-24"
     >
       <div className="container mx-auto px-4">
         <Reveal className="max-w-3xl mx-auto text-center mb-14 md:mb-16">
@@ -242,33 +249,67 @@ export default function Home() {
   return (
     <>
       <Helmet>
-        <title>Vision9 Solar Inc. | Ontario Solar Installation</title>
-        <meta name="description" content="Vision9 Solar Inc. provides net-metering and off-grid solar solutions for residential and commercial properties in Ontario." />
+        <title>Vision9 Modular Solar Racking | Field-Proven, Ontario-Built</title>
+        <meta name="description" content="The Vision9 Modular Racking System — field-proven, seasonally adjustable solar racking designed, built, and supplied in Ontario. Net-metering and off-grid installs also available." />
       </Helmet>
 
-      {/* Hero Section */}
+      {/* Hero Section — Modular Racking */}
       <section className="bg-background py-20 md:py-28 lg:py-32 overflow-hidden relative">
         <div className="container mx-auto px-4 grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
           <Reveal className="z-10">
+            <div className="inline-flex items-center gap-2 mb-6">
+              <span className="h-9 w-9 rounded-lg bg-background ring-1 ring-primary/25 shadow-sm flex items-center justify-center">
+                <img src={modularRackingIcon} alt="" aria-hidden="true" className="h-6 w-6" />
+              </span>
+              <p className="text-xs font-bold tracking-[0.18em] uppercase text-primary">
+                Introducing — The Vision9 Modular Racking System
+              </p>
+            </div>
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-foreground mb-6 leading-[1.05] tracking-tight">
-              Off Grid Solar &<br />
-              <span className="text-primary">Net Metering</span> Solutions
+              Modular Racking,<br />
+              Developed in the Field.<br />
+              <span className="text-primary">Built by Professionals.</span>
             </h1>
             <p className="text-lg md:text-xl text-secondary mb-10 max-w-lg leading-relaxed">
-              Professional solar installations for homes, businesses, and remote properties. Built by engineers with real-world operations & maintenance experience.
+              Ontario-engineered, field-proven solar racking — designed and supplied by a team that has spent a decade operating and maintaining solar in real conditions. One unit adjusts through every season.
             </p>
             <div className="flex flex-wrap gap-4">
               <Button asChild size="lg" className="font-semibold rounded">
-                <Link href="/estimates">Get an Estimate</Link>
+                <Link href="/modular-racking" data-testid="hero-cta-racking-quote">Get a Racking Quote</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="font-semibold rounded">
-                <Link href="/services">View Services</Link>
+                <a href="#how-it-works">See How It Works</a>
               </Button>
             </div>
           </Reveal>
           <Reveal className="relative z-10" delay={0.15}>
-            <img src={heroImg} alt="Vision9 Solar dual-axis solar tracker fully built with a technician standing in front during a winter install in Northern Ontario" className="w-full h-auto rounded-lg shadow-2xl object-cover aspect-[4/3]" loading="eager" />
+            <img src={modular45Img} alt="Vision9 Modular Racking unit tilted to a 45-degree angle in an Ontario field" className="w-full h-auto rounded-lg shadow-2xl object-cover aspect-[4/3]" loading="eager" />
           </Reveal>
+        </div>
+      </section>
+
+      {/* Modular Racking Showcase — promoted to top */}
+      <ModularRackingSection id="how-it-works" />
+
+      {/* Manufacturer Credibility Band */}
+      <section className="bg-muted border-y border-border">
+        <div className="container mx-auto px-4 py-12 md:py-14">
+          <StaggerChildren
+            className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-6"
+            staggerDelay={0.08}
+          >
+            {CREDIBILITY.map(({ icon: Icon, label, sub }) => (
+              <StaggerItem key={label} className="flex items-start gap-3 text-left">
+                <div className="shrink-0 h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center text-primary">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-foreground text-sm md:text-base leading-tight">{label}</p>
+                  <p className="text-xs md:text-sm text-secondary mt-1 leading-snug">{sub}</p>
+                </div>
+              </StaggerItem>
+            ))}
+          </StaggerChildren>
         </div>
       </section>
 
@@ -298,26 +339,30 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Solutions Section */}
-      <section className="py-24 md:py-28 bg-muted">
+      {/* Expertise Section */}
+      <ExpertiseSection />
+
+      {/* Also: Net Metering & Off-Grid (secondary) */}
+      <section className="py-16 md:py-20 bg-muted border-t border-border">
         <div className="container mx-auto px-4">
-          <Reveal className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 leading-tight">Solutions for Builders & Developers</h2>
-            <p className="text-secondary text-lg">
-              We specialize in providing remote power solutions that open up new possibilities for your clients' dream properties.
+          <Reveal className="max-w-2xl mb-10">
+            <p className="text-xs font-bold tracking-[0.18em] uppercase text-primary mb-3">Beyond Racking</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">Net Metering & Off-Grid Installs</h2>
+            <p className="text-secondary text-base md:text-lg mt-3 leading-relaxed">
+              The same field experience behind our racking powers full solar installs for homes, businesses, and remote builds across Ontario.
             </p>
           </Reveal>
 
-          <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
             <Reveal className="order-2 md:order-1">
-              <img src={builderImg} alt="Vision9 Solar commercial rooftop solar array installation in Northern Ontario" className="w-full h-72 md:h-96 rounded shadow-lg object-cover" loading="lazy" />
+              <img src={builderImg} alt="Vision9 Solar commercial rooftop solar array installation in Northern Ontario" className="w-full h-56 md:h-72 rounded shadow-lg object-cover" loading="lazy" />
             </Reveal>
-            <Reveal className="order-1 md:order-2 space-y-6" delay={0.1}>
-              <h3 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">Hassle-Free Power Anywhere</h3>
-              <p className="text-secondary text-lg leading-relaxed">
-                No longer limited to having access to local utilities. We enable you to build dream cottages, homes, or luxury getaways wherever your clients desire.
+            <Reveal className="order-1 md:order-2 space-y-5" delay={0.1}>
+              <h3 className="text-xl md:text-2xl font-bold text-foreground leading-tight">Hassle-Free Power Anywhere</h3>
+              <p className="text-secondary leading-relaxed">
+                No longer limited to local utilities — we enable cottages, homes, and getaways wherever your clients build.
               </p>
-              <StaggerChildren as="ul" className="space-y-3" staggerDelay={0.06}>
+              <StaggerChildren as="ul" className="grid sm:grid-cols-2 gap-x-6 gap-y-2.5" staggerDelay={0.05}>
                 {[
                   "Opens new markets and opportunities",
                   "Meets sustainable, eco-friendly demands",
@@ -325,31 +370,32 @@ export default function Home() {
                   "Demonstrates ESG commitment",
                   "Industry-leading reliability"
                 ].map((item, i) => (
-                  <StaggerItem key={i} as="li" className="flex items-center gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                    <span className="text-foreground font-medium">{item}</span>
+                  <StaggerItem key={i} as="li" className="flex items-center gap-2.5">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                    <span className="text-foreground text-sm font-medium">{item}</span>
                   </StaggerItem>
                 ))}
               </StaggerChildren>
-              <Button asChild variant="link" className="px-0 text-primary hover:text-primary/80 font-semibold">
-                <Link href="/about" className="flex items-center gap-2">
-                  Learn about our expertise <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
+              <div className="flex flex-wrap gap-4 pt-1">
+                <Button asChild variant="link" className="px-0 text-primary hover:text-primary/80 font-semibold">
+                  <Link href="/net-metering" className="flex items-center gap-2">
+                    Net metering <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button asChild variant="link" className="px-0 text-primary hover:text-primary/80 font-semibold">
+                  <Link href="/services" className="flex items-center gap-2">
+                    All services <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
             </Reveal>
           </div>
         </div>
       </section>
 
-      {/* Expertise Section */}
-      <ExpertiseSection />
-
-      {/* Modular Racking Section */}
-      <ModularRackingSection />
-
       {/* Recent Projects Section */}
       {(galleriesLoading || recentGalleries.length > 0) && (
-        <section className="py-24 md:py-28 bg-muted">
+        <section className="py-24 md:py-28 bg-background">
           <div className="container mx-auto px-4">
             <Reveal className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
               <div>
@@ -413,13 +459,18 @@ export default function Home() {
       <section className="py-28 md:py-32 bg-foreground text-background text-center relative overflow-hidden">
         <div className="container mx-auto px-4 relative z-10">
           <Reveal>
-            <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white leading-tight">Ready to power your next project?</h2>
+            <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white leading-tight">Put field-proven racking on your next project.</h2>
             <p className="text-lg md:text-xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
-              Whether you need a net-metering system for your home or a robust off-grid solution for a remote build, our engineers are ready to help.
+              Tell us about your site and we'll spec the right Vision9 Modular Racking system — or a full net-metering or off-grid install if that's what you need.
             </p>
-            <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-sm px-8 transition-transform duration-200 hover:-translate-y-0.5">
-              <Link href="/estimates">Request an Estimate</Link>
-            </Button>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-sm px-8 transition-transform duration-200 hover:-translate-y-0.5">
+                <Link href="/modular-racking">Get a Racking Quote</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="font-bold rounded-sm px-8 border-white/40 text-white hover:bg-white/10">
+                <Link href="/estimates">Request a General Estimate</Link>
+              </Button>
+            </div>
           </Reveal>
         </div>
       </section>

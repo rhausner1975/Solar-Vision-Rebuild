@@ -7,12 +7,12 @@ import { OFFICES, SITE_CONTACT } from "@/lib/siteContact";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
+  { href: "/modular-racking", label: "Modular Racking" },
+  { href: "/services", label: "Services" },
   { href: "/net-metering", label: "Net Metering" },
   { href: "/about", label: "About" },
-  { href: "/services", label: "Services" },
-  { href: "/modular-racking", label: "Modular Racking" },
-  { href: "/estimates", label: "Estimates" },
   { href: "/galleries", label: "Galleries" },
+  { href: "/estimates", label: "Estimates" },
   { href: "/contact", label: "Contact" },
 ];
 
