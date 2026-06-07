@@ -696,8 +696,8 @@ export default function ModularRacking() {
                   </h3>
                   <p className="text-secondary leading-relaxed mb-6">
                     Off-grid is intimidating. There's a real learning curve, and
-                    the mistakes are expensive. When you buy a Vision9 system,
-                    you're not experimenting — you're following a blueprint
+                    the mistakes are expensive. When you buy a Vision9 Solar,
+                    you're not experimenting; you're following a blueprint
                     that's already been tested in the field, in real winters, on
                     real properties.
                   </p>
