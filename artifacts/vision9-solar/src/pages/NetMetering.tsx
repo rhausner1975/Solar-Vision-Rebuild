@@ -31,17 +31,19 @@ export default function NetMetering() {
               Net metering is a billing mechanism that allows residential and commercial customers who generate their own electricity from solar panels or other renewable energy sources to offset their consumption and earn credits for excess power they generate.
             </p>
             <p className="text-secondary text-lg leading-relaxed">
-              In Ontario, Canada, net metering has become an increasingly popular option for homeowners and businesses who want to reduce their carbon footprint and lower their energy bills.
+              In Ontario, Canada, net metering has become an increasingly popular option for homeowners and businesses.
+            </p>
+            <p className="text-secondary text-lg leading-relaxed">
+              They can take advantage of new solutions to provide reliable and stable power, load shedding, zero usage, and backup power during power outages.
             </p>
             <div className="pt-4">
               <h3 className="text-xl font-bold text-foreground mb-4">Key Benefits</h3>
               <StaggerChildren as="ul" className="space-y-3" staggerDelay={0.06}>
                 {[
-                  "Significantly lower your monthly hydro bills",
                   "Earn credits for excess energy produced",
                   "Protect yourself against rising electricity costs",
                   "Increase your property value",
-                  "Reduce your carbon footprint"
+                  "Option to add battery storage for partial or whole home backup"
                 ].map((item, i) => (
                   <StaggerItem key={i} as="li" className="flex items-center gap-3">
                     <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
