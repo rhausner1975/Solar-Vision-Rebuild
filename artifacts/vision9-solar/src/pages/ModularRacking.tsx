@@ -824,43 +824,45 @@ export default function ModularRacking() {
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
-      <section className="py-24 md:py-28 bg-background">
-        <div className="container mx-auto px-4">
-          <Reveal className="max-w-3xl mb-12">
-            <p className="text-sm font-bold tracking-[0.18em] uppercase text-primary mb-3">
-              What Customers Say
-            </p>
-            <h2 className="text-3xl md:text-5xl font-bold text-foreground leading-tight tracking-tight">
-              In their words.
-            </h2>
-          </Reveal>
-          <StaggerChildren
-            className="grid md:grid-cols-2 gap-6 lg:gap-8"
-            staggerDelay={0.1}
-          >
-            {TESTIMONIALS.map((t, i) => (
-              <StaggerItem key={i}>
-                <Card className="h-full border-border bg-muted">
-                  <CardContent className="p-8 md:p-10 flex flex-col h-full">
-                    <Quote className="h-8 w-8 text-primary mb-4 opacity-60" />
-                    <p className="text-lg text-foreground leading-relaxed italic mb-6">
-                      "{t.quote}"
-                    </p>
-                    <div className="mt-auto pt-6 border-t border-border/60">
-                      <p className="font-bold text-foreground">{t.name}</p>
-                      <p className="text-sm text-secondary">{t.role}</p>
-                      <p className="text-xs text-primary font-semibold mt-2 uppercase tracking-wide">
-                        ← Replace with real customer testimonial
+      {/* TESTIMONIALS — hidden until real testimonials are ready */}
+      {false && (
+        <section className="py-24 md:py-28 bg-background">
+          <div className="container mx-auto px-4">
+            <Reveal className="max-w-3xl mb-12">
+              <p className="text-sm font-bold tracking-[0.18em] uppercase text-primary mb-3">
+                What Customers Say
+              </p>
+              <h2 className="text-3xl md:text-5xl font-bold text-foreground leading-tight tracking-tight">
+                In their words.
+              </h2>
+            </Reveal>
+            <StaggerChildren
+              className="grid md:grid-cols-2 gap-6 lg:gap-8"
+              staggerDelay={0.1}
+            >
+              {TESTIMONIALS.map((t, i) => (
+                <StaggerItem key={i}>
+                  <Card className="h-full border-border bg-muted">
+                    <CardContent className="p-8 md:p-10 flex flex-col h-full">
+                      <Quote className="h-8 w-8 text-primary mb-4 opacity-60" />
+                      <p className="text-lg text-foreground leading-relaxed italic mb-6">
+                        "{t.quote}"
                       </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </StaggerItem>
-            ))}
-          </StaggerChildren>
-        </div>
-      </section>
+                      <div className="mt-auto pt-6 border-t border-border/60">
+                        <p className="font-bold text-foreground">{t.name}</p>
+                        <p className="text-sm text-secondary">{t.role}</p>
+                        <p className="text-xs text-primary font-semibold mt-2 uppercase tracking-wide">
+                          ← Replace with real customer testimonial
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </StaggerItem>
+              ))}
+            </StaggerChildren>
+          </div>
+        </section>
+      )}
 
       {/* LEAD FORM */}
       <section
