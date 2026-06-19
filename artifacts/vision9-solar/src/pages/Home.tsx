@@ -13,7 +13,7 @@ import modularRackingV3Img from "@/assets/source/modular-racking-v3-field-instal
 import netMeteringImg from "@/assets/source/net-metering-residential.jpg";
 import modularRackingIcon from "@/assets/source/modular-racking-icon.svg";
 import modularFlatImg from "@/assets/source/modular-flat-transport.jpg";
-import modular45Img from "@/assets/source/modular-45-spring-fall.jpg";
+import modular45Img from "@/assets/source/hero-modular-racking-field.jpg";
 import modular28Img from "@/assets/source/modular-28-summer.jpg";
 
 const STATS = [
@@ -300,7 +300,7 @@ export default function Home() {
             </div>
           </Reveal>
           <Reveal className="relative z-10" delay={0.15}>
-            <img src={modular45Img} alt="Vision9 Modular Racking unit tilted to a 45-degree angle in an Ontario field" className="w-full h-auto rounded-lg shadow-2xl object-cover aspect-[4/3]" loading="eager" />
+            <img src={modular45Img} alt="Vision9 Modular Racking ground-mount system in a green field with solar panels" className="w-full h-auto rounded-lg shadow-2xl object-cover aspect-[4/3]" loading="eager" />
           </Reveal>
         </div>
       </section>
