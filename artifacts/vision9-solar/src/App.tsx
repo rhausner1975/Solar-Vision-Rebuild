@@ -21,6 +21,11 @@ import Contact from "@/pages/Contact";
 import Galleries from "@/pages/Galleries";
 import GalleryView from "@/pages/GalleryView";
 import ModularRacking from "@/pages/ModularRacking";
+import Launch from "@/pages/Launch";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsOfService from "@/pages/TermsOfService";
+import Connect from "@/pages/Connect";
+import Disconnect from "@/pages/Disconnect";
 
 // Admin Pages
 import AdminLogin from "@/pages/admin/Login";
@@ -100,6 +105,11 @@ function Router() {
           <Route path="/contact" component={Contact} />
           <Route path="/galleries" component={Galleries} />
           <Route path="/galleries/:slug" component={GalleryView} />
+          <Route path="/launch" component={Launch} />
+          <Route path="/privacy" component={PrivacyPolicy} />
+          <Route path="/terms" component={TermsOfService} />
+          <Route path="/connect" component={Connect} />
+          <Route path="/disconnect" component={Disconnect} />
           <Route component={NotFound} />
         </Switch>
       </PageTransition>

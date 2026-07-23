@@ -182,7 +182,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="container mx-auto px-4 mt-12 pt-8 border-t border-gray-700 text-center text-gray-400 text-sm">
-          <p>&copy; {new Date().getFullYear()} Vision9 Inc. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Vision9 Solar Inc. All rights reserved.</p>
+          <div className="mt-3 flex justify-center gap-6 text-sm">
+            <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+          </div>
         </div>
       </footer>
     </div>
