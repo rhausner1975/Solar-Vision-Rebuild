@@ -18,7 +18,7 @@ export const SITE_CONTACT = {
   primaryPhoneStructured: "+1-705-570-5034",
   emailDisplay: "info@vision9.biz",
   emailHref: "mailto:info@vision9.biz",
-  topBarTagline: "Proudly serving Marmora Ontario and surrounding areas!",
+  topBarTagline: "Proudly serving Kirkland Lake, Marmora and surrounding areas!",
 } as const;
 
 export const OFFICES: ReadonlyArray<Office> = [

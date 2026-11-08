@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import logo from "@/assets/source/Asset-3.png";
 import { OFFICES, SITE_CONTACT } from "@/lib/siteContact";
 
-const NAV_LINKS = [
+const NAV_LINKS: { href: string; label: string; external?: boolean }[] = [
   { href: "/", label: "Home" },
   { href: "/modular-racking", label: "Modular Racking" },
   { href: "/services", label: "Services" },
+  { href: "https://snow.vision9.biz", label: "Snow Removal", external: true },
   { href: "/net-metering", label: "Net Metering" },
   { href: "/about", label: "About" },
   { href: "/galleries", label: "Galleries" },
@@ -39,24 +40,29 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-7">
+          <nav className="hidden md:flex items-center gap-2 lg:gap-7">
             {NAV_LINKS.map((link) => {
-              const isActive = location === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`group relative text-sm font-semibold tracking-wide transition-colors duration-200 hover:text-primary ${
-                    isActive ? "text-primary" : "text-foreground"
+              const isActive = !link.external && location === link.href;
+              const className = `group relative text-sm font-semibold tracking-wide transition-colors duration-200 hover:text-primary ${
+                isActive ? "text-primary" : "text-foreground"
+              }`;
+              const testId = `nav-link-${link.label.toLowerCase().replace(/\s+/g, "-")}`;
+              const underline = (
+                <span
+                  className={`absolute -bottom-1.5 left-0 h-0.5 bg-primary transition-all duration-300 ease-out ${
+                    isActive ? "w-full" : "w-0 group-hover:w-full"
                   }`}
-                  data-testid={`nav-link-${link.label.toLowerCase().replace(/\s+/g, "-")}`}
-                >
+                />
+              );
+              return link.external ? (
+                <a key={link.href} href={link.href} className={className} data-testid={testId}>
                   {link.label}
-                  <span
-                    className={`absolute -bottom-1.5 left-0 h-0.5 bg-primary transition-all duration-300 ease-out ${
-                      isActive ? "w-full" : "w-0 group-hover:w-full"
-                    }`}
-                  />
+                  {underline}
+                </a>
+              ) : (
+                <Link key={link.href} href={link.href} className={className} data-testid={testId}>
+                  {link.label}
+                  {underline}
                 </Link>
               );
             })}
@@ -76,18 +82,33 @@ export function Shell({ children }: { children: React.ReactNode }) {
         {/* Mobile Nav */}
         {mobileMenuOpen && (
           <nav className="md:hidden border-t border-border bg-background p-4 flex flex-col gap-4">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`text-sm font-semibold py-2 transition-colors hover:text-primary ${
-                  location === link.href ? "text-primary" : "text-foreground"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const className = `text-sm font-semibold py-2 transition-colors hover:text-primary ${
+                location === link.href ? "text-primary" : "text-foreground"
+              }`;
+              const testId = `nav-link-${link.label.toLowerCase().replace(/\s+/g, "-")}`;
+              return link.external ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={className}
+                  data-testid={testId}
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={className}
+                  data-testid={testId}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
         )}
       </header>
