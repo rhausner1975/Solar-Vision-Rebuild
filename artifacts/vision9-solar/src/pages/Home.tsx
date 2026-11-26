@@ -2,7 +2,8 @@ import { useRef } from "react";
 import { Link } from "wouter";
 import { Helmet } from "react-helmet-async";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
-import { ArrowRight, CheckCircle2, Image as ImageIcon, HardHat, Users, Snowflake, MapPin } from "lucide-react";
+import { ArrowRight, CheckCircle2, Image as ImageIcon, HardHat, Users, Snowflake, MapPin, PlayCircle } from "lucide-react";
+import { RACKING_SITE } from "@/lib/siteContact";
 import { useListPublicGalleries } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, StaggerChildren, StaggerItem, Counter } from "@/components/motion";
@@ -235,6 +236,22 @@ function ModularRackingSection({ id }: { id?: string }) {
               Explore Modular Racking
               <ArrowRight className="h-4 w-4" />
             </Link>
+          </Button>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="font-semibold rounded ml-0 sm:ml-3 mt-3 sm:mt-0 transition-transform duration-200 hover:-translate-y-0.5"
+          >
+            <a
+              href={RACKING_SITE.installUrl}
+              target="_blank" rel="noopener"
+              className="flex items-center gap-2"
+              data-testid="home-racking-videos"
+            >
+              <PlayCircle className="h-5 w-5 text-primary" />
+              Watch the install videos ↗
+            </a>
           </Button>
         </Reveal>
       </div>

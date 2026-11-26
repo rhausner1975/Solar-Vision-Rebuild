@@ -1,9 +1,9 @@
 import { Link, useLocation } from "wouter";
-import { Menu, X, Phone, Mail, MapPin } from "lucide-react";
+import { Menu, X, Phone, Mail, MapPin, PlayCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/source/Asset-3.png";
-import { OFFICES, SITE_CONTACT } from "@/lib/siteContact";
+import { OFFICES, RACKING_SITE, SITE_CONTACT } from "@/lib/siteContact";
 
 const NAV_LINKS: { href: string; label: string; external?: boolean }[] = [
   { href: "/", label: "Home" },
@@ -121,7 +121,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {/* Footer */}
       <footer className="bg-foreground text-background py-12 mt-auto">
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="col-span-1 md:col-span-2">
+          <div className="col-span-1">
             <img src={logo} alt="Vision9 Solar" className="h-12 object-contain brightness-0 invert opacity-90 mb-6" />
             <p className="text-gray-300 max-w-sm mb-6">
               Expert solar installations, net-metering systems, off-grid power solutions, and IT consulting for Ontario.
@@ -164,6 +164,20 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   </div>
                 </li>
               ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-bold mb-4 text-white">For installers &amp; wholesalers</h3>
+            <ul className="space-y-3 text-gray-300">
+              <li className="flex items-start gap-3">
+                <PlayCircle className="h-5 w-5 shrink-0 text-primary" />
+                <a href={RACKING_SITE.installUrl} target="_blank" rel="noopener" className="hover:text-primary transition-colors" data-testid="footer-racking-videos">V9S racking install videos ↗</a>
+              </li>
+              <li className="flex items-start gap-3">
+                <MapPin className="h-5 w-5 shrink-0 text-primary" />
+                <a href={RACKING_SITE.siteCheckUrl} target="_blank" rel="noopener" className="hover:text-primary transition-colors" data-testid="footer-racking-sitecheck">Site check: will it work? ↗</a>
+              </li>
             </ul>
           </div>
         </div>
