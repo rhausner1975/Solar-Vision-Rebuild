@@ -40,8 +40,9 @@ for (const route of ROUTES) {
   // Marked so src/main.tsx can drop them once React takes over the head.
   const headTags = [...tags.values()].map((t) => t.replace(/^<(\w+)/, "<$1 data-prerendered"));
   page = page.replace("</head>", `  ${headTags.join("\n    ")}\n  </head>`);
-  const out = route === "/" ? path.join(pub, "index.html") : path.join(pub, route.slice(1), "index.html");
-  fs.mkdirSync(path.dirname(out), { recursive: true });
+  // Flat files (about.html), not folders (about/index.html): Replit's static host 301s any
+  // path that matches a folder to its trailing-slash form before applying rewrites.
+  const out = route === "/" ? path.join(pub, "index.html") : path.join(pub, route.slice(1) + ".html");
   fs.writeFileSync(out, page);
   console.log(`prerendered ${route} (${Math.round(page.length / 1024)} KB): ${tags.get("title")}`);
 }
