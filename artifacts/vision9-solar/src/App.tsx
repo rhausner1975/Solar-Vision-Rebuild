@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { PageTransition, SmoothScroll } from "@/components/motion";
-import { OFFICES, SITE_CONTACT } from "@/lib/siteContact";
+import { OFFICES, SITE_CONTACT, SITE_ORIGIN } from "@/lib/siteContact";
 
 // Layouts
 import { Shell } from "@/components/layout/Shell";
@@ -85,6 +85,9 @@ function Router() {
 
   return (
     <Shell>
+      <Helmet>
+        <link rel="canonical" href={`${SITE_ORIGIN}${location === "/" ? "/" : location.replace(/\/$/, "")}`} />
+      </Helmet>
       <SmoothScroll />
       <PageTransition routeKey={location}>
         <Switch>
@@ -104,7 +107,9 @@ function Router() {
   );
 }
 
-function App() {
+// ssrPath and helmetContext are only passed by the build-time pre-renderer
+// (src/entry-server.tsx); in the browser App is rendered without props.
+function App({ ssrPath, helmetContext }: { ssrPath?: string; helmetContext?: object } = {}) {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": ["Organization", "LocalBusiness"],
@@ -112,8 +117,8 @@ function App() {
     "areaServed": "Ontario, Canada",
     "telephone": SITE_CONTACT.primaryPhoneStructured,
     "email": SITE_CONTACT.emailDisplay,
-    "url": "https://vision9solar.com",
-    "logo": "https://vision9solar.com/src/assets/source/Asset-3.png",
+    "url": SITE_ORIGIN,
+    "logo": `${SITE_ORIGIN}/logo.png`,
     "address": OFFICES.map((office) => ({
       "@type": "PostalAddress",
       ...(office.street ? { "streetAddress": office.street } : {}),
@@ -142,7 +147,7 @@ function App() {
   };
 
   return (
-    <HelmetProvider>
+    <HelmetProvider context={helmetContext}>
       <Helmet>
         <title>Vision9 Solar Inc.</title>
         <meta name="description" content="Ontario solar installation company serving Marmora and Northern Ontario. Specializing in net-metering systems, off-grid solar power, and commercial O&M." />
@@ -150,7 +155,7 @@ function App() {
       </Helmet>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")} ssrPath={ssrPath}>
             <Router />
           </WouterRouter>
           <Toaster />

@@ -1,3 +1,7 @@
+// The address search engines and AI crawlers should treat as the real one
+// (the same site also answers on solar.vision9.biz and vision9solar.com).
+export const SITE_ORIGIN = "https://www.vision9.biz";
+
 export type Office = {
   id: "south" | "north";
   region: string;

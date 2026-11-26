@@ -4,4 +4,4 @@ Disallow: /admin
 Disallow: /admin/
 Disallow: /api/
 
-Sitemap: https://vision9solar.com/sitemap.xml
+Sitemap: https://www.vision9.biz/sitemap.xml
