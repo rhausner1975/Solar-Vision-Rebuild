@@ -21,6 +21,13 @@ export const SITE_CONTACT = {
   topBarTagline: "Proudly serving Kirkland Lake, Marmora and surrounding areas!",
 } as const;
 
+// V9S racking guide for installers and wholesalers (separate site on Railway).
+export const RACKING_SITE = {
+  url: "https://racking.vision9.biz/",
+  installUrl: "https://racking.vision9.biz/#install",
+  siteCheckUrl: "https://racking.vision9.biz/#site",
+} as const;
+
 export const OFFICES: ReadonlyArray<Office> = [
   {
     id: "south",

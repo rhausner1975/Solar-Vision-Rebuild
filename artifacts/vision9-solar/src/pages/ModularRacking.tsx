@@ -19,13 +19,14 @@ import {
   Mail,
   MapPin,
   Image as ImageIcon,
+  PlayCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { OFFICES, SITE_CONTACT } from "@/lib/siteContact";
+import { OFFICES, RACKING_SITE, SITE_CONTACT } from "@/lib/siteContact";
 import {
   Form,
   FormControl,
@@ -390,6 +391,15 @@ export default function ModularRacking() {
                 <p className="text-sm text-secondary mt-6 italic">
                   Trouble-free installation &amp; ownership — by design, not by luck.
                 </p>
+                <a
+                  href={RACKING_SITE.installUrl}
+                  target="_blank" rel="noopener"
+                  className="mt-6 inline-flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 font-semibold text-foreground hover:border-primary transition-colors"
+                  data-testid="hero-racking-guide"
+                >
+                  <PlayCircle className="h-7 w-7 shrink-0 text-primary" />
+                  <span>Installer or wholesaler? Watch a real install, start to finish: 4 racks in about 45 minutes →</span>
+                </a>
               </Reveal>
             </div>
             <Reveal className="lg:col-span-6 order-1 lg:order-2" delay={0.15}>
@@ -532,6 +542,40 @@ export default function ModularRacking() {
             <h2 className="text-3xl md:text-5xl font-bold text-foreground leading-tight tracking-tight">
               From delivery to first power in a weekend.
             </h2>
+          </Reveal>
+
+          <Reveal className="mb-16">
+            <a
+              href={RACKING_SITE.installUrl}
+              target="_blank" rel="noopener"
+              className="group grid md:grid-cols-2 overflow-hidden rounded-lg bg-[#0f1712] text-white shadow-xl"
+              data-testid="how-racking-guide"
+            >
+              <div className="relative min-h-[220px]">
+                <img
+                  src="https://media.vision9solar.com/racking/V9S-step1-carry-in.jpg"
+                  alt="V9S install film, step 1: two people carry a pre-assembled rack"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  loading="lazy"
+                />
+                <PlayCircle className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 text-[#FDB913] drop-shadow-lg transition-transform duration-200 group-hover:scale-110" />
+              </div>
+              <div className="flex flex-col justify-center gap-4 p-8 md:p-10">
+                <p className="text-sm font-bold tracking-[0.18em] uppercase text-primary">
+                  For installers &amp; wholesalers · 4 short films
+                </p>
+                <p className="text-3xl md:text-4xl font-extrabold leading-tight">
+                  Watch a real install, start to finish.
+                </p>
+                <p className="text-gray-300 leading-relaxed">
+                  Carry in, drive the anchors, tension the cables, stand it up: 4 racks standing in
+                  about 45 minutes on the on-site clock. No crane, no concrete.
+                </p>
+                <span className="self-start rounded-full bg-[#FDB913] px-5 py-3 font-bold text-[#1b1a10]">
+                  Watch the install →
+                </span>
+              </div>
+            </a>
           </Reveal>
 
           {/* Mobile: image then sequential steps */}
@@ -760,6 +804,16 @@ export default function ModularRacking() {
                     >
                       Become a Vision9 Partner
                       <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
+                    <Button
+                      asChild
+                      size="lg"
+                      variant="outline"
+                      className="w-full sm:w-auto font-semibold rounded mt-3 sm:mt-0 sm:ml-3"
+                    >
+                      <a href={RACKING_SITE.url} target="_blank" rel="noopener" data-testid="audience-cta-racking-guide">
+                        See the installer &amp; wholesaler guide ↗
+                      </a>
                     </Button>
                   </div>
                 </CardContent>
