@@ -20,6 +20,7 @@ import { useGetPublicGallery, getGetPublicGalleryQueryKey } from "@workspace/api
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { imageVariantUrl, imageSrcSet } from "@/lib/galleryImage";
+import { SITE_ORIGIN } from "@/lib/siteContact";
 
 export default function GalleryView() {
   const [, params] = useRoute("/galleries/:slug");
@@ -73,7 +74,7 @@ export default function GalleryView() {
     "@type": "ImageGallery",
     "name": gallery.title,
     "description": gallery.description || "",
-    "image": images.map(img => `https://vision9solar.com${imageVariantUrl(img.objectPath, "full")}`)
+    "image": images.map(img => `${SITE_ORIGIN}${imageVariantUrl(img.objectPath, "full")}`)
   };
 
   // 5 image strip logic

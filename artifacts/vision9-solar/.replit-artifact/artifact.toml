@@ -22,9 +22,42 @@ build = [ "pnpm", "--filter", "@workspace/vision9-solar", "run", "build" ]
 publicDir = "artifacts/vision9-solar/dist/public"
 serve = "static"
 
+# Pre-rendered pages (scripts/prerender.mjs) first, then the plain app shell.
+[[services.production.rewrites]]
+from = "/"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/modular-racking"
+to = "/modular-racking/index.html"
+
+[[services.production.rewrites]]
+from = "/services"
+to = "/services/index.html"
+
+[[services.production.rewrites]]
+from = "/net-metering"
+to = "/net-metering/index.html"
+
+[[services.production.rewrites]]
+from = "/about"
+to = "/about/index.html"
+
+[[services.production.rewrites]]
+from = "/galleries"
+to = "/galleries/index.html"
+
+[[services.production.rewrites]]
+from = "/estimates"
+to = "/estimates/index.html"
+
+[[services.production.rewrites]]
+from = "/contact"
+to = "/contact/index.html"
+
 [[services.production.rewrites]]
 from = "/*"
-to = "/index.html"
+to = "/spa.html"
 
 [services.env]
 PORT = "25036"
