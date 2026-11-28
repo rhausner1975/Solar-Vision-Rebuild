@@ -29,31 +29,59 @@ to = "/index.html"
 
 [[services.production.rewrites]]
 from = "/modular-racking"
-to = "/modular-racking/index.html"
+to = "/modular-racking.html"
+
+[[services.production.rewrites]]
+from = "/modular-racking/"
+to = "/modular-racking.html"
 
 [[services.production.rewrites]]
 from = "/services"
-to = "/services/index.html"
+to = "/services.html"
+
+[[services.production.rewrites]]
+from = "/services/"
+to = "/services.html"
 
 [[services.production.rewrites]]
 from = "/net-metering"
-to = "/net-metering/index.html"
+to = "/net-metering.html"
+
+[[services.production.rewrites]]
+from = "/net-metering/"
+to = "/net-metering.html"
 
 [[services.production.rewrites]]
 from = "/about"
-to = "/about/index.html"
+to = "/about.html"
+
+[[services.production.rewrites]]
+from = "/about/"
+to = "/about.html"
 
 [[services.production.rewrites]]
 from = "/galleries"
-to = "/galleries/index.html"
+to = "/galleries.html"
+
+[[services.production.rewrites]]
+from = "/galleries/"
+to = "/galleries.html"
 
 [[services.production.rewrites]]
 from = "/estimates"
-to = "/estimates/index.html"
+to = "/estimates.html"
+
+[[services.production.rewrites]]
+from = "/estimates/"
+to = "/estimates.html"
 
 [[services.production.rewrites]]
 from = "/contact"
-to = "/contact/index.html"
+to = "/contact.html"
+
+[[services.production.rewrites]]
+from = "/contact/"
+to = "/contact.html"
 
 [[services.production.rewrites]]
 from = "/*"
